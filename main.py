@@ -29,7 +29,6 @@ def main():
     init_logger()
     logger = logging.getLogger(__name__)
     logger.info("---------- EzSticker started running ----------")
-    logger.debug("test debug")
 
     def parse_args():
         logger.info("---------- Started parsing arguments ----------")
