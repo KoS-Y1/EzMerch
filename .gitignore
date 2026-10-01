@@ -309,3 +309,6 @@ http-client.private.env.json
 
 # Log
 ./*.log
+
+# Image output as for testing
+*.png

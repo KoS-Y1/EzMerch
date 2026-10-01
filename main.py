@@ -7,6 +7,7 @@ import logging
 import argparse
 import pathlib
 
+from core.entity import Entity
 
 def main():
     def init_logger():
@@ -38,19 +39,22 @@ def main():
         parser.add_argument("--out", "--o", type=pathlib.Path, help="Output file path", required=True)
         parser.add_argument("--type", "--t", choices=["png", "psd"], default="png",help="Output file type")
 
-        args = parser.parse_args()
+        parsed_args = parser.parse_args()
 
         logger.info("Source images:")
-        for src in args.src:
+        for src in parsed_args.src:
             logger.info(src)
 
-        logger.info(f"Output file name {args.out}")
-        logger.info(f"Output file type {args.type}")
+        logger.info(f"Output file name {parsed_args.out}")
+        logger.info(f"Output file type {parsed_args.type}")
 
         logger.info("---------- Finished parsing arguments ----------")
-        return args
+        return parsed_args
 
     args = parse_args()
+
+    for path in args.src:
+        e = Entity(path)
 
 
 if __name__ == "__main__":
