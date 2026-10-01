@@ -7,11 +7,14 @@ import logging
 import argparse
 import pathlib
 
-from core.entity import Entity
+from core.processor import Processor
+from utlis.format import FileType
+
 
 def main():
     def init_logger():
-        logging.basicConfig(level=logging.DEBUG)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -19,12 +22,16 @@ def main():
         console_handler.setLevel(logging.DEBUG)
         console_handler.setFormatter(formatter)
 
-        file_handler = logging.FileHandler("EzSticker.log", "w")
+        file_handler = logging.FileHandler(
+            "EzSticker.log",
+            mode="w",
+            encoding="utf-8",
+        )
         file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(formatter)
 
-        logging.getLogger('').addHandler(console_handler)
-        logging.getLogger('').addHandler(file_handler)
+        root_logger.addHandler(console_handler)
+        root_logger.addHandler(file_handler)
 
     init_logger()
     logger = logging.getLogger(__name__)
@@ -36,7 +43,7 @@ def main():
 
         parser.add_argument("--src", "--s", nargs="+", type=pathlib.Path, help="Source images", required=True)
         parser.add_argument("--out", "--o", type=pathlib.Path, help="Output file path", required=True)
-        parser.add_argument("--type", "--t", choices=["png", "psd"], default="png",help="Output file type")
+        parser.add_argument("--type", "--t", choices=["png", "psd"], default="png", help="Output file type")
 
         parsed_args = parser.parse_args()
 
@@ -52,8 +59,10 @@ def main():
 
     args = parse_args()
 
-    for path in args.src:
-        e = Entity(path)
+    processor = Processor()
+    processor.load_images(args.src)
+
+    processor.output_all_cropped(args.out, FileType(args.type))
 
 
 if __name__ == "__main__":

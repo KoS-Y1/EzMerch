@@ -9,6 +9,8 @@ import numpy as np
 
 import cv2
 
+from utlis.file_io import load_image
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,19 +36,18 @@ class Entity:
             cropped_image = image[y_min:y_max + 1, x_min:x_max + 1]
 
             logger.info(f"Successfully read and crop image: {path}")
-            return  cropped_image
+            return cropped_image
 
-        image = cv2.imdecode(
-            np.frombuffer(path.read_bytes(), dtype=np.uint8),
-            cv2.IMREAD_UNCHANGED,
-        )
+        image = load_image(path)
 
         if image is None:
             raise ValueError(f"Failed to read image: {path}")
 
-        self._image = crop_transparent()
+        self.__name = path.stem
+        self.__image = crop_transparent()
 
-        cv2.imwrite(f"extracted{path.stem}.png", self._image)
+    def get_name(self) -> str:
+        return self.__name
 
-    def get_image(self):
-        return self._image
+    def get_image(self) -> cv2.typing.MatLike:
+        return self.__image
