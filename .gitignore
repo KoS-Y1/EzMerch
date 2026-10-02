@@ -312,3 +312,6 @@ http-client.private.env.json
 
 # Image output as for testing
 *.png
+
+# MacOS
+.DS_Store
