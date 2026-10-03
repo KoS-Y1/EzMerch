@@ -9,7 +9,7 @@ import numpy as np
 
 import cv2
 
-from utlis.file_io import load_image
+from utils.file_io import load_image
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class Entity:
 
         contours_image = np.zeros_like(self.__image)
         cv2.drawContours(contours_image, self.__contours, -1, (0, 255, 255, 255), 1)
-        cv2.imwrite("contour.png", contours_image)
+        cv2.imwrite(f"{path.stem}_contour.png", contours_image)
 
     def get_name(self) -> str:
         return self.__name

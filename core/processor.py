@@ -9,8 +9,9 @@ from dataclasses import dataclass
 import cv2
 
 from .entity import Entity
-from utlis.format import FileType
-from utlis.file_io import export
+from utils.format import FileType
+from utils.file_io import export
+from utils.units import mm_to_px
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,30 @@ class Processor:
     Core logic
     """
 
+    @dataclass
+    class OutputData:
+        DEFAULT_DPI = 300
+
+        width: float  # mm
+        height: float  # mm
+        dpi: int
+
+        def clear_output(self) -> None:
+            self.width = 0
+            self.height = 0
+            self.dpi = self.DEFAULT_DPI
+
+        def get_size_px(self) -> tuple[int, int]:
+            return mm_to_px(self.width, self.dpi), mm_to_px(self.height, self.dpi)
+
+        def is_valid(self) -> bool:
+            return self.width > 0 and self.height > 0 and self.dpi > 0
+
     def __init__(self):
         self.__load_batch = BatchResult(succeeded=[], failed=[])
         self.__export_batch = BatchResult(succeeded=[], failed=[])
+
+        self.__output_data = self.OutputData(width=0, height=0, dpi=self.OutputData.DEFAULT_DPI)
 
         self.__entities = []
 
@@ -60,10 +82,13 @@ class Processor:
             for log in self.__load_batch.failed:
                 print(f"Failed {str(log)}")
 
+    def set_output_data(self, width: float, height: float, dpi: int = OutputData.DEFAULT_DPI):
+        self.__output_data = self.OutputData(width=width, height=height, dpi=dpi)
+
     def clear_entity_list(self) -> None:
         self.__entities.clear()
 
-    def output_all_cropped(self, dst_path: pathlib.Path, file_type: FileType):
+    def output_all_cropped(self, dst_path: pathlib.Path, file_type: FileType, resize: bool = False) -> None:
         self.__export_batch.clear_batch()
 
         for entity in self.__entities:
@@ -77,3 +102,22 @@ class Processor:
                 continue
 
             self.__export_batch.succeeded.append(file_path)
+
+    def __resize_to_output(self, image: cv2.typing.MatLike) -> cv2.typing.MatLike:
+        if not self.__output_data.is_valid():
+            logger.warning("Invalid output data to resize, return original image")
+            return image
+
+        height, width = image.shape[:2]
+
+        out_width_px, out_height_px = self.__output_data.get_size_px()
+
+        out = cv2.resize(image, (out_width_px, out_height_px))
+
+        if out is None:
+            logger.warning(
+                f"Failed to resize image from {width, height} to {out_width_px, out_height_px}, return original image")
+            return image
+
+        logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
+        return out

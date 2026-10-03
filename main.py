@@ -8,7 +8,7 @@ import argparse
 import pathlib
 
 from core.processor import Processor
-from utlis.format import FileType
+from utils.format import FileType
 
 
 def main():
@@ -44,6 +44,7 @@ def main():
         parser.add_argument("--src", "--s", nargs="+", type=pathlib.Path, help="Source images", required=True)
         parser.add_argument("--out", "--o", type=pathlib.Path, help="Output file path", required=True)
         parser.add_argument("--type", "--t", choices=["png", "psd"], default="png", help="Output file type")
+        parser.add_argument("--size", nargs=2, type=float, help="Output width, height in mm")
 
         parsed_args = parser.parse_args()
 
