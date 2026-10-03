@@ -45,6 +45,7 @@ def main():
         parser.add_argument("--out", "--o", type=pathlib.Path, help="Output file path", required=True)
         parser.add_argument("--type", "--t", choices=["png", "psd"], default="png", help="Output file type")
         parser.add_argument("--size", nargs=2, type=float, help="Output width, height in mm")
+        parser.add_argument("--dpi",type=float, default=300, help="Output DPI" )
 
         parsed_args = parser.parse_args()
 
@@ -61,9 +62,10 @@ def main():
     args = parse_args()
 
     processor = Processor()
+    processor.set_output_data(args.size[0], args.size[1])
     processor.load_images(args.src)
 
-    processor.output_all_cropped(args.out, FileType(args.type))
+    processor.output_all_cropped(args.out, FileType(args.type), True)
 
 
 if __name__ == "__main__":

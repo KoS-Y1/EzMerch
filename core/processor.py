@@ -7,6 +7,7 @@ import pathlib
 from dataclasses import dataclass
 
 import cv2
+import numpy as np
 
 from .entity import Entity
 from utils.format import FileType
@@ -94,8 +95,14 @@ class Processor:
         for entity in self.__entities:
             file_path = dst_path / f"{entity.get_name()}_cropped"
 
+            output_image = entity.get_image()
+
+            if resize:
+                logger.info(f"Resizing image:{file_path}")
+                output_image = self.__resize_to_output(output_image)
+
             try:
-                export(file_path, entity.get_image(), file_type)
+                export(file_path, output_image, file_type)
             except (OSError, ValueError, cv2.error) as exc:
                 logger.warning(f"Failed to export {file_path}, {exc}")
                 self.__export_batch.failed.append(file_path)
@@ -109,15 +116,34 @@ class Processor:
             return image
 
         height, width = image.shape[:2]
-
         out_width_px, out_height_px = self.__output_data.get_size_px()
 
-        out = cv2.resize(image, (out_width_px, out_height_px))
+        ratio_width = out_width_px / width
+        ratio_height = out_height_px / height
+        ratio = ratio_width if ratio_width < ratio_height else ratio_height
 
-        if out is None:
+        uniform_scaled = cv2.resize(
+            image,
+            (round(width * ratio), round(height * ratio)),
+            interpolation=cv2.INTER_LINEAR
+        )
+
+        if uniform_scaled is None:
             logger.warning(
                 f"Failed to resize image from {width, height} to {out_width_px, out_height_px}, return original image")
             return image
+
+        scaled_height, scaled_width = uniform_scaled.shape[:2]
+
+        out = np.zeros(
+            (out_height_px, out_width_px, image.shape[2]),
+            dtype=image.dtype
+        )
+
+        # Center the resized image
+        x = (out_width_px - scaled_width) // 2
+        y = (out_height_px - scaled_height) // 2
+        out[y:y + scaled_height, x:x + scaled_width, :] = uniform_scaled
 
         logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
         return out
