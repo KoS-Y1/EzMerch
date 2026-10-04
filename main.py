@@ -9,7 +9,7 @@ from core.processor import Processor
 from cli.cli_interface import CLIInterface
 
 
-def main():
+def main() -> None:
     def init_logger():
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
