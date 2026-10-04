@@ -1,0 +1,52 @@
+# 
+# Created by y1 on 2026-10-03
+#
+
+import logging
+
+import argparse
+import pathlib
+
+from core.processor import Processor
+from utils.format import FileFormat
+from utils.units import UnitType
+
+logger = logging.getLogger(__name__)
+
+
+class CLIInterface:
+    def __init__(self):
+        logger.info("---------- EzSticker running from CLI----------")
+        self.parser = argparse.ArgumentParser()
+
+        # Shared arguments
+        shared = argparse.ArgumentParser(add_help=False)
+        shared.add_argument("--src", nargs="+", type=pathlib.Path, help="Source images", required=True)
+        shared.add_argument("--dest", type=pathlib.Path, help="Output path", required=True)
+        shared.add_argument("--format", choices=["png", "psd"], default="png", help="Output file format")
+        shared.add_argument("--size", nargs=2, type=float, help="Output width and height, in px by default")
+        shared.add_argument("--dpi", type=int, help="Output dpi")
+        shared.add_argument("--unit", choices=["px", "mm"], default="px", help="Output unit")
+
+        commands = self.parser.add_subparsers(dest="command", required=True)
+
+        crop = commands.add_parser("crop", parents=[shared])
+        crop.set_defaults(handler=self.__crop)
+
+        contour = commands.add_parser("contour", parents=[shared])
+
+    def execute(self, processor: Processor):
+        args = self.parser.parse_args()
+
+        processor.set_output_unit(args.unit)
+        if args.size is not None:
+            processor.set_output_size(*args.size)
+        if args.dpi is not None:
+            processor.set__output_dpi(args.dpi)
+
+        processor.load_images(args.src)
+
+    @staticmethod
+    def __crop(args, processor: Processor):
+        is_resize = args.size is not None
+        processor.output_all_cropped(args.dest, FileFormat(args.format), is_resize)

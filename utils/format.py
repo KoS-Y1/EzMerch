@@ -3,7 +3,7 @@
 #
 from enum import Enum
 
-class FileType(Enum):
+class FileFormat(Enum):
     PNG = "png"
     PSD = "psd"
 

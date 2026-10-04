@@ -8,7 +8,7 @@ import argparse
 import pathlib
 
 from core.processor import Processor
-from utils.format import FileType
+from utils.format import FileFormat
 
 
 def main():
@@ -63,7 +63,7 @@ def main():
     processor = Processor()
     processor.load_images(args.src)
 
-    processor.output_all_cropped(args.out, FileType(args.type))
+    processor.output_all_cropped(args.out, FileFormat(args.type))
 
 
 if __name__ == "__main__":

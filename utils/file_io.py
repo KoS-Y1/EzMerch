@@ -7,12 +7,12 @@ import logging
 import cv2
 import numpy as np
 
-from .format import FileType
+from .format import FileFormat
 
 logger = logging.getLogger(__name__)
 
 
-def export(path: pathlib.Path, image: cv2.typing.MatLike, file_type: FileType) -> None:
+def export(path: pathlib.Path, image: cv2.typing.MatLike, file_type: FileFormat) -> None:
     output_path = pathlib.Path(f"{path}.{file_type.value}")
 
     def export_png():
@@ -24,8 +24,8 @@ def export(path: pathlib.Path, image: cv2.typing.MatLike, file_type: FileType) -
         raise ValueError(f"Failed to write image: {output_path}, currently .psd not supported")
 
     export_selector = {
-        FileType.PNG: export_png,
-        FileType.PSD: export_psd
+        FileFormat.PNG: export_png,
+        FileFormat.PSD: export_psd
     }
 
     export_selector[file_type]()
