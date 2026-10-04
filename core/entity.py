@@ -53,10 +53,6 @@ class Entity:
         self.__image = crop_transparent()
         self.__contours = extract_contour()
 
-        contours_image = np.zeros_like(self.__image)
-        cv2.drawContours(contours_image, self.__contours, -1, (0, 255, 255, 255), 1)
-        cv2.imwrite(f"{path.stem}_contour.png", contours_image)
-
     def get_name(self) -> str:
         return self.__name
 

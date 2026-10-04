@@ -4,11 +4,9 @@
 
 import logging
 
-import argparse
-import pathlib
-
 from core.processor import Processor
-from utils.format import FileFormat
+
+from cli.cli_interface import CLIInterface
 
 
 def main():
@@ -34,37 +32,11 @@ def main():
         root_logger.addHandler(file_handler)
 
     init_logger()
-    logger = logging.getLogger(__name__)
-    logger.info("---------- EzSticker started running ----------")
-
-    def parse_args():
-        logger.info("---------- Started parsing arguments ----------")
-        parser = argparse.ArgumentParser()
-
-        parser.add_argument("--src", "--s", nargs="+", type=pathlib.Path, help="Source images", required=True)
-        parser.add_argument("--out", "--o", type=pathlib.Path, help="Output file path", required=True)
-        parser.add_argument("--type", "--t", choices=["png", "psd"], default="png", help="Output file type")
-        parser.add_argument("--size", nargs=2, type=float, help="Output width, height in mm")
-
-        parsed_args = parser.parse_args()
-
-        logger.info("Source images:")
-        for src in parsed_args.src:
-            logger.info(src)
-
-        logger.info(f"Output file name {parsed_args.out}")
-        logger.info(f"Output file type {parsed_args.type}")
-
-        logger.info("---------- Finished parsing arguments ----------")
-        return parsed_args
-
-    args = parse_args()
 
     processor = Processor()
-    processor.set_output_data(args.size[0], args.size[1])
-    processor.load_images(args.src)
 
-    processor.output_all_cropped(args.out, FileFormat(args.type))
+    cli = CLIInterface()
+    cli.execute(processor)
 
 
 if __name__ == "__main__":

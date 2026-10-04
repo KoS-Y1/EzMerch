@@ -85,7 +85,7 @@ class Processor:
         self.__output_data.width = width
         self.__output_data.height = height
 
-    def set__output_dpi(self, dpi: int) -> None:
+    def set_output_dpi(self, dpi: int) -> None:
         self.__output_data.dpi = dpi
 
     def set_output_unit(self, unit: UnitType) -> None:
@@ -95,6 +95,8 @@ class Processor:
         self.__entities.clear()
 
     def load_images(self, paths: list[pathlib.Path]) -> None:
+        logger.info("---------- Start loading images ----------")
+
         self.__load_batch.clear_batch()
         self.clear_entity_list()
 
@@ -109,17 +111,22 @@ class Processor:
             self.__entities.append(entity)
             self.__load_batch.succeeded.append(path)
 
-            for log in self.__load_batch.succeeded:
-                print(f"Succeed {str(log)}")
+        succeeded = "\n".join(str(path.resolve()) for path in self.__load_batch.succeeded)
+        failed = "\n".join(str(path.resolve()) for path in self.__load_batch.failed)
+        logger.info(
+            f"Finish loading:\n"
+            f"Successfully loaded:\n{succeeded or '(none)'}\n"
+            f"Failed to load:\n{failed or '(none)'}\n"
+        )
 
-            for log in self.__load_batch.failed:
-                print(f"Failed {str(log)}")
+    def export_all_cropped(self, dst_path: pathlib.Path, file_format: FileFormat, resize: bool = False) -> None:
+        logger.info("---------- Start exporting all cropped images ----------")
 
-    def output_all_cropped(self, dst_path: pathlib.Path, file_format: FileFormat, resize: bool = False) -> None:
         self.__export_batch.clear_batch()
 
         for entity in self.__entities:
             file_path = dst_path / f"{entity.get_name()}_cropped"
+            output_path = pathlib.Path(f"{file_path}.{file_format.value}")
 
             output_image = entity.get_image()
 
@@ -131,10 +138,18 @@ class Processor:
                 export(file_path, output_image, file_format)
             except (OSError, ValueError, cv2.error) as exc:
                 logger.warning(f"Failed to export {file_path}, {exc}")
-                self.__export_batch.failed.append(file_path)
+                self.__export_batch.failed.append(output_path)
                 continue
 
-            self.__export_batch.succeeded.append(file_path)
+            self.__export_batch.succeeded.append(output_path)
+
+        succeeded = "\n".join(str(path.resolve()) for path in self.__export_batch.succeeded)
+        failed = "\n".join(str(path.resolve()) for path in self.__export_batch.failed)
+        logger.info(
+            f"Finish exporting:\n"
+            f"Successfully exported:\n{succeeded or '(none)'}\n"
+            f"Failed to export:\n{failed or '(none)'}\n"
+        )
 
     def __resize_to_output(self, image: cv2.typing.MatLike) -> cv2.typing.MatLike:
         if not self.__output_data.is_valid():
@@ -148,11 +163,15 @@ class Processor:
         ratio_height = out_height_px / height
         ratio = ratio_width if ratio_width < ratio_height else ratio_height
 
-        uniform_scaled = cv2.resize(
-            image,
-            (round(width * ratio), round(height * ratio)),
-            interpolation=cv2.INTER_LINEAR
-        )
+        try:
+            uniform_scaled = cv2.resize(
+                image,
+                (round(width * ratio), round(height * ratio)),
+                interpolation=cv2.INTER_LINEAR
+            )
+        except cv2.error as exc:
+            logger.warning(f"Failed to resize image: {exc}, return original image")
+            return image
 
         if uniform_scaled is None:
             logger.warning(

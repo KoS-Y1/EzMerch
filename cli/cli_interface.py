@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 class CLIInterface:
     def __init__(self):
-        logger.info("---------- EzSticker running from CLI----------")
         self.parser = argparse.ArgumentParser()
 
         # Shared arguments
@@ -37,16 +36,19 @@ class CLIInterface:
 
     def execute(self, processor: Processor):
         args = self.parser.parse_args()
+        logger.info("---------- EzSticker running from CLI----------")
 
-        processor.set_output_unit(args.unit)
+        processor.set_output_unit(UnitType(args.unit))
         if args.size is not None:
             processor.set_output_size(*args.size)
         if args.dpi is not None:
-            processor.set__output_dpi(args.dpi)
+            processor.set_output_dpi(args.dpi)
 
         processor.load_images(args.src)
 
+        args.handler(args, processor)
+
     @staticmethod
     def __crop(args, processor: Processor):
-        is_resize = args.size is not None
-        processor.output_all_cropped(args.dest, FileFormat(args.format), is_resize)
+        resize = args.size is not None
+        processor.export_all_cropped(args.dest, FileFormat(args.format), resize)
