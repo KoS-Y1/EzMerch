@@ -61,6 +61,7 @@ def main():
     args = parse_args()
 
     processor = Processor()
+    processor.set_output_data(args.size[0], args.size[1])
     processor.load_images(args.src)
 
     processor.output_all_cropped(args.out, FileFormat(args.type))
