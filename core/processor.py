@@ -9,11 +9,11 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from .entity import Entity
+from .entity import Entity, OutputData
 
 from utils.format import FileFormat
 from utils.file_io import export
-from utils.units import UnitType, mm_to_px
+from utils.units import UnitType
 
 logger = logging.getLogger(__name__)
 
@@ -36,50 +36,17 @@ class Processor:
     Core logic
     """
 
-    @dataclass
-    class OutputData:
-        DEFAULT_DPI = 300
-        DEFAULT_UNIT_TYPE = UnitType.PX
-
-        dpi: int = DEFAULT_DPI
-        width: float = 0
-        height: float = 0
-        unit: UnitType = UnitType.PX
-
-        def clear_output(self) -> None:
-            self.width = 0
-            self.height = 0
-            self.dpi = self.DEFAULT_DPI
-            self.unit = self.DEFAULT_UNIT_TYPE
-
-        def get_size_px(self) -> tuple[int, int]:
-            def unit_px() -> tuple[int, int]:
-                return round(self.width), round(self.height)
-
-            def unit_mm() -> tuple[int, int]:
-                return mm_to_px(self.width, self.dpi), mm_to_px(self.height, self.dpi)
-
-            get_size_selector = {
-                UnitType.PX: unit_px,
-                UnitType.MM: unit_mm,
-            }
-
-            return get_size_selector[self.unit]()
-
-        def is_valid(self) -> bool:
-            return self.width > 0 and self.height > 0 and self.dpi > 0
-
     def __init__(self):
         self.__load_batch = BatchResult(succeeded=[], failed=[])
         self.__export_batch = BatchResult(succeeded=[], failed=[])
 
-        self.__output_data = self.OutputData(width=0, height=0, dpi=self.OutputData.DEFAULT_DPI)
+        self.__output_data = OutputData(width=0, height=0, dpi=OutputData.DEFAULT_DPI)
 
         self.__entities = []
 
     def set_output_data(self, width: float, height: float, dpi: int = OutputData.DEFAULT_DPI,
                         unit: UnitType = UnitType.PX):
-        self.__output_data = self.OutputData(width=width, height=height, dpi=dpi, unit=unit)
+        self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit)
 
     def set_output_size(self, width: float, height: float) -> None:
         self.__output_data.width = width
@@ -150,45 +117,3 @@ class Processor:
             f"Successfully exported:\n{succeeded or '(none)'}\n"
             f"Failed to export:\n{failed or '(none)'}\n"
         )
-
-    def __resize_to_output(self, image: cv2.typing.MatLike) -> cv2.typing.MatLike:
-        if not self.__output_data.is_valid():
-            logger.warning("Invalid output data to resize, return original image")
-            return image
-
-        height, width = image.shape[:2]
-        out_width_px, out_height_px = self.__output_data.get_size_px()
-
-        ratio_width = out_width_px / width
-        ratio_height = out_height_px / height
-        ratio = ratio_width if ratio_width < ratio_height else ratio_height
-
-        try:
-            uniform_scaled = cv2.resize(
-                image,
-                (round(width * ratio), round(height * ratio)),
-                interpolation=cv2.INTER_LINEAR
-            )
-        except cv2.error as exc:
-            logger.warning(f"Failed to resize image: {exc}, return original image")
-            return image
-
-        if uniform_scaled is None:
-            logger.warning(
-                f"Failed to resize image from {width, height} to {out_width_px, out_height_px}, return original image")
-            return image
-
-        scaled_height, scaled_width = uniform_scaled.shape[:2]
-
-        out = np.zeros(
-            (out_height_px, out_width_px, image.shape[2]),
-            dtype=image.dtype
-        )
-
-        # Center the resized image
-        x = (out_width_px - scaled_width) // 2
-        y = (out_height_px - scaled_height) // 2
-        out[y:y + scaled_height, x:x + scaled_width, :] = uniform_scaled
-
-        logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
-        return out

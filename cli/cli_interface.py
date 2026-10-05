@@ -22,17 +22,24 @@ class CLIInterface:
         shared = argparse.ArgumentParser(add_help=False)
         shared.add_argument("--src", nargs="+", type=pathlib.Path, help="Source images", required=True)
         shared.add_argument("--dest", type=pathlib.Path, help="Output path", required=True)
-        shared.add_argument("--format", choices=["png", "psd"], default="png", help="Output file format")
+        shared.add_argument("--format", choices=["png", "psd"], default="png",
+                            help="Output file format, png by default")
         shared.add_argument("--size", nargs=2, type=float, help="Output width and height, in px by default")
         shared.add_argument("--dpi", type=int, help="Output dpi")
-        shared.add_argument("--unit", choices=["px", "mm"], default="px", help="Output unit")
-
+        shared.add_argument("--unit", choices=["px", "mm"], default="px", help="Output unit, px by default")
+        shared.add_argument("--color", choices=["rgb", "cmyk"], default="rgb",
+                            help="Output color mode, rgb by default (psd only)")
         commands = self.parser.add_subparsers(dest="command", required=True)
 
         crop = commands.add_parser("crop", parents=[shared])
         crop.set_defaults(handler=self.__crop)
 
-        contour = commands.add_parser("contour", parents=[shared])
+        dieline = commands.add_parser("dieline", parents=[shared])
+        dieline.add_argument("--distant", type=float, default=20,
+                             help="Dieline distant from original image, 20px by default")
+        dieline.add_argument("--thickness", type=float, default=4, help="Dieline thickness, 4px by default")
+        dieline.add_argument("--dieline_unit", choices=["px", "mm"], default="px", help="Dieline unit, px by default")
+
 
     def execute(self, processor: Processor):
         args = self.parser.parse_args()

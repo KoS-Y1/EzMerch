@@ -7,3 +7,6 @@ class FileFormat(Enum):
     PNG = "png"
     PSD = "psd"
 
+class ColorFormat(Enum):
+    RGB = "rgb"
+    CMYK = "cmyk"
