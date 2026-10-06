@@ -6,6 +6,7 @@ import pathlib
 import logging
 from dataclasses import dataclass, replace
 from enum import Enum
+from typing import Callable
 
 import numpy as np
 
@@ -97,7 +98,7 @@ class Entity:
         self.__image = crop_transparent()
         self.__contours = extract_contour()
         self.__need_recalculation = True
-        self.__elements = {
+        self.__elements: dict[EntityElements, cv2.typing.MatLike | None] = {
             EntityElements.BASE: None,
             EntityElements.DIELINE: None,
             EntityElements.BLEED: None,
@@ -107,27 +108,29 @@ class Entity:
         return self.__name
 
     def get_elements(self, elements: set[EntityElements]) -> list[tuple[cv2.typing.MatLike, str]]:
-        # TODO: should return resized image based on the request output size
-        def calculate_base_image() -> cv2.typing.MatLike:
-            return self.__image
+        # TODO: pre calculate size in px for each element before applying resizing
+        def pre_calculate_sizes() -> dict[EntityElements, tuple[int, int]]:
+            s = {
+                EntityElements.BASE: self.__output_data.get_size_px(),
+                EntityElements.DIELINE: self.__output_data.get_size_px(),
+                EntityElements.BLEED: self.__output_data.get_size_px(),
+            }
 
-        # TODO
-        def calculate_dieline() -> cv2.typing.MatLike:
-            return self.__image
+            return s
 
-        # TODO
-        def calculate_bleed() -> cv2.typing.MatLike:
-            return self.__image
+        def is_element_valid(e: EntityElements, width: int, height: int) -> bool:
+            img = self.__elements[e]
+            if img is None:
+                return False
 
-        # TODO: verify if element's size matches
-        def is_element_valid(e: EntityElements) -> bool:
+            if not self.__can_resize(width, height):
+                return True
+
+            h, w = img.shape[:2]
+            if h == height and w == width:
+                return True
+
             return False
-
-        element_selector = {
-            EntityElements.BASE: calculate_base_image,
-            EntityElements.DIELINE: calculate_dieline,
-            EntityElements.BLEED: calculate_bleed,
-        }
 
         iterate_order = [
             EntityElements.BASE,
@@ -135,7 +138,14 @@ class Entity:
             EntityElements.BLEED,
         ]
 
-        output = []
+        element_selector: dict[EntityElements, Callable[[int, int], cv2.typing.MatLike]] = {
+            EntityElements.BASE: self.__calculate_base,
+            EntityElements.DIELINE: self.__calculate_dieline,
+            EntityElements.BLEED: self.__calculate_bleed,
+        }
+
+        sizes = pre_calculate_sizes()
+        output: list[tuple[cv2.typing.MatLike, str]] = []
 
         for element in iterate_order:
             if element not in elements:
@@ -143,23 +153,31 @@ class Entity:
 
             image = self.__elements[element]
 
-            if image is None or self.__need_recalculation or not is_element_valid(element):
+            if (image is None
+                    or self.__need_recalculation
+                    or not is_element_valid(element, *sizes[element])):
                 try:
-                    image = element_selector[element]()
-                except ValueError as exc:
-                    raise exc
+                    image = element_selector[element](*sizes[element])
+                except ValueError:
+                    logger.exception("Failed to calculate element")
+                    raise
+                self.__elements[element] = image
 
-            output.append([image, element.name])
+            output.append((image, element.name))
+
+        self.__need_recalculation = False
 
         return output
 
-    def __resize(self, image: cv2.typing.MatLike) -> cv2.typing.MatLike:
-        if not self.__output_data.is_valid():
+    def __can_resize(self, width: int, height: int) -> bool:
+        return self.__output_data.is_valid() and width > 0 and height > 0
+
+    def __resize(self, image: cv2.typing.MatLike, out_width_px: int, out_height_px: int) -> cv2.typing.MatLike:
+        if not self.__can_resize(out_width_px, out_height_px):
             logger.warning("Invalid output data to resize, return original image")
             return image
 
         height, width = image.shape[:2]
-        out_width_px, out_height_px = self.__output_data.get_size_px()
 
         ratio_width = out_width_px / width
         ratio_height = out_height_px / height
@@ -168,7 +186,7 @@ class Entity:
         try:
             uniform_scaled = cv2.resize(
                 image,
-                (round(width * ratio), round(height * ratio)),
+                (max(1, round(width * ratio)), max(1, round(height * ratio))),
                 interpolation=cv2.INTER_LINEAR
             )
         except cv2.error as exc:
@@ -194,3 +212,14 @@ class Entity:
 
         logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
         return out
+
+    def __calculate_base(self, width: int, height: int) -> cv2.typing.MatLike:
+        return self.__resize(self.__image, width, height)
+
+    # TODO: may need to apply other things
+    def __calculate_dieline(self, width: int, height: int) -> cv2.typing.MatLike:
+        return self.__resize(self.__image, width, height)
+
+    # TODO:
+    def __calculate_bleed(self, width: int, height: int) -> cv2.typing.MatLike:
+        return self.__resize(self.__image, width, height)
