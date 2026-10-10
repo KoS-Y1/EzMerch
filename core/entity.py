@@ -6,7 +6,6 @@ import pathlib
 import logging
 from dataclasses import dataclass, replace
 from enum import Enum
-from statistics import median
 from typing import Callable
 
 import numpy as np
@@ -129,12 +128,6 @@ class Entity:
             logger.info(f"Successfully read and crop image: {path}")
             return cropped_image
 
-        def extract_contour():
-            alpha = self.__image[:, :, 3]
-            _, thresh = cv2.threshold(alpha, 0, 255, cv2.THRESH_BINARY)
-            contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            return contours
-
         image = load_image(path)
 
         if image is None:
@@ -143,7 +136,6 @@ class Entity:
         self.__name = path.stem
         self.__output_data = OutputData() if output_data is None else replace(output_data)
         self.__image = crop_transparent()
-        self.__contours = extract_contour()
         self.__need_recalculation = True
         self.__cached_resize = False
         self.__elements: dict[EntityElements, cv2.typing.MatLike | None] = {
@@ -152,6 +144,8 @@ class Entity:
             EntityElements.BLEED: None,
         }
 
+        height, width = self.__image.shape[:2]
+        self.__base_size = (width, height)
         self.__dieline_data = DielineData()
 
     def get_name(self) -> str:
@@ -172,40 +166,52 @@ class Entity:
             EntityElements.BLEED,
         ]
 
-        # TODO: pre calculate size in px for each element before applying resizing or without resizing
-        def pre_calculate_sizes() -> dict[EntityElements, tuple[int, int]]:
-            if resize:
-                return {
-                    EntityElements.BASE: self.__output_data.get_size_px(),
-                    EntityElements.DIELINE: self.__output_data.get_size_px(),
-                    EntityElements.BLEED: self.__output_data.get_size_px(),
-                }
-            else:
-                height, width = self.__image.shape[:2]
-                return {
-                    EntityElements.BASE: (width, height),
-                    EntityElements.DIELINE: (width, height),
-                    EntityElements.BLEED: (width, height),
-                }
+        # TODO: need to handle bleed line padding
+        def pre_calculate_sizes() -> None:
+            def base_padding() -> int:
+                return 0
 
-        def is_element_valid(e: EntityElements, width: int, height: int) -> bool:
+            def dieline_padding() -> int:
+                return self.__dieline_data.get_thickness_px() + self.__dieline_data.get_distance_px() + 1
+
+            # TODO
+            def bleed_padding() -> int:
+                return 0
+
+            padding_selector = {
+                EntityElements.BASE: base_padding,
+                EntityElements.DIELINE: dieline_padding,
+                EntityElements.BLEED: bleed_padding,
+            }
+
+            paddings: list[int] = []
+
+            for element in elements:
+                paddings.append(padding_selector[element]())
+
+            max_padding = max(paddings)
+
+            if resize:
+                width, height = self.__output_data.get_size_px()
+                self.__base_size = (width - 2 * max_padding, height - 2 * max_padding)
+            else:
+                width, height = self.__base_size
+                output_width =
+
+        def is_element_valid(e: EntityElements) -> bool:
             img = self.__elements[e]
             if img is None:
                 return False
 
-            h, w = img.shape[:2]
-            if h == height and w == width:
-                return True
+            out_width, out_height = self.__output_data.get_size_px()
+            return img.shape[:2] == (out_height, out_width)
 
-            return False
-
-        element_selector: dict[EntityElements, Callable[[int, int, bool], cv2.typing.MatLike]] = {
+        element_selector: dict[EntityElements, Callable[[bool], cv2.typing.MatLike]] = {
             EntityElements.BASE: self.__calculate_base,
             EntityElements.DIELINE: self.__calculate_dieline,
             EntityElements.BLEED: self.__calculate_bleed,
         }
 
-        sizes = pre_calculate_sizes()
         output: list[tuple[cv2.typing.MatLike, str]] = []
 
         for element in iterate_order:
@@ -214,9 +220,9 @@ class Entity:
 
             image = self.__elements[element]
 
-            if image is None or not is_element_valid(element, *sizes[element]):
+            if image is None or not is_element_valid(element):
                 try:
-                    image = element_selector[element](*sizes[element], resize)
+                    image = element_selector[element](resize)
                 except ValueError:
                     logger.exception("Failed to calculate element")
                     raise
@@ -230,6 +236,10 @@ class Entity:
         if self.__output_data != output_data:
             self.__output_data = replace(output_data)
             self.__need_recalculation = True
+
+    def set_output_size(self, width:float, height:float):
+        self.__output_data.width = width
+        self.__output_data.height = height
 
     def set_dieline_data(self, dieline_data: DielineData) -> None:
         if self.__dieline_data != dieline_data:
@@ -265,31 +275,31 @@ class Entity:
                 f"Failed to resize image from {width, height} to {out_width_px, out_height_px}, return original image")
             return image
 
-        scaled_height, scaled_width = uniform_scaled.shape[:2]
-
-        out = np.zeros(
-            (out_height_px, out_width_px, image.shape[2]),
-            dtype=image.dtype
-        )
-
-        # Center the resized image
-        x = (out_width_px - scaled_width) // 2
-        y = (out_height_px - scaled_height) // 2
-        out[y:y + scaled_height, x:x + scaled_width, :] = uniform_scaled
-
         logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
-        return out
+        return uniform_scaled
 
-    def __calculate_base(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
-        if not resize:
-            return self.__image
-        return self.__resize(self.__image, width, height)
+    @staticmethod
+    def __center_image(image: cv2.typing.MatLike, out_width: int, out_height: int) -> cv2.typing.MatLike:
+        height, width = image.shape[:2]
 
-    def __calculate_dieline(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+        canvas = np.zeros((out_height, out_width, 4), dtype=image.dtype)
+
+        x = (out_width - width) // 2
+        y = (out_height - height) // 2
+        canvas[y:y + height, x:x + width, :] = image
+
+        return canvas
+
+    def __calculate_base(self, resize: bool = False) -> cv2.typing.MatLike:
+        image = self.__resize(self.__image, *self.__base_size) if resize else self.__image
+
+        return self.__center_image(image, *self.__output_data.get_size_px())
+
+    def __calculate_dieline(self, resize: bool = False) -> cv2.typing.MatLike:
         distance = self.__dieline_data.get_distance_px()
         thickness = self.__dieline_data.get_thickness_px()
 
-        GAUSSIAN_BLUR_KERNEL = (21, 21)
+        gaussian_blur_kernel = (5, 5)
 
         print(f"thickness{thickness}, distance{distance}")
         if not resize:
@@ -300,26 +310,23 @@ class Entity:
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * distance + 1, 2 * distance + 1))
             expanded = cv2.dilate(mask, kernel)
 
-            smoothed = cv2.GaussianBlur(expanded, GAUSSIAN_BLUR_KERNEL, sigmaX=0)
+            smoothed = cv2.GaussianBlur(expanded, gaussian_blur_kernel, sigmaX=0)
             _, smoothed = cv2.threshold(smoothed, 127, 255, cv2.THRESH_BINARY)
             cv2.imwrite("./smoothed.png", smoothed)
             contour, _ = cv2.findContours(smoothed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             stroke_alpha = np.zeros(mask.shape, dtype=np.uint8)
-            cv2.drawContours(stroke_alpha, contour, -1,  color=255, thickness=thickness, lineType=cv2.LINE_AA)
+            cv2.drawContours(stroke_alpha, contour, -1, color=255, thickness=thickness, lineType=cv2.LINE_AA)
             dieline = np.zeros((*mask.shape, 4), dtype=np.uint8)
-            dieline[:,:,3]=stroke_alpha
-            median = cv2.medianBlur(dieline, 5)
-            cv2.imwrite("./median.png", median)
-            cv2.imwrite("./dieline.png", dieline)
-            dieline_smoothed = cv2.GaussianBlur(dieline, (5,5), sigmaX=0)
-            _, dieline_smoothed = cv2.threshold(dieline_smoothed, 127, 255, cv2.THRESH_BINARY)
-            cv2.imwrite("./dielines.png", dieline_smoothed)
-            return dieline
-        return self.__resize(self.__image, width, height)
+            dieline[:, :, 3] = stroke_alpha
+            dieline_smoothed = cv2.medianBlur(dieline, 5)
+            cv2.imwrite("./median1.png", dieline_smoothed)
+            cv2.imwrite("./dieline1.png", dieline)
+            return self.__center_image(dieline_smoothed, *self.__output_data.get_size_px())
+        return self.__resize(self.__image, *self.__output_data.get_size_px())
 
     # TODO:
-    def __calculate_bleed(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+    def __calculate_bleed(self, resize: bool = False) -> cv2.typing.MatLike:
         if not resize:
             return self.__image
-        return self.__resize(self.__image, width, height)
+        return self.__resize(self.__image, *self.__output_data.get_size_px())

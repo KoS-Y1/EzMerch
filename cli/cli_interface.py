@@ -62,6 +62,11 @@ class CLIInterface:
 
     @staticmethod
     def __dieline(args, processor: Processor):
-        processor.set_dieline_data(args.thickness, args.distance, args.dpi, UnitType(args.dieline_unit))
+        processor.set_dieline_thickness(args.thickness)
+        processor.set_dieline_distance(args.distance)
+
+        if args.dieline_unit is not None:
+            processor.set_dieline_unit(args.dieline_unit)
+
         resize = args.size is not None
         processor.export_all_dieline(args.dest, FileFormat(args.format), resize)
