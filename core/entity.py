@@ -98,6 +98,7 @@ class Entity:
         self.__image = crop_transparent()
         self.__contours = extract_contour()
         self.__need_recalculation = True
+        self.__cached_resize = False
         self.__elements: dict[EntityElements, cv2.typing.MatLike | None] = {
             EntityElements.BASE: None,
             EntityElements.DIELINE: None,
@@ -108,6 +109,14 @@ class Entity:
         return self.__name
 
     def get_elements(self, elements: set[EntityElements], resize: bool = False) -> list[tuple[cv2.typing.MatLike, str]]:
+        if resize != self.__cached_resize:
+            self.__need_recalculation = True
+
+        if self.__need_recalculation:
+            self.__elements = dict.fromkeys(self.__elements, None)
+            self.__cached_resize = resize
+            self.__need_recalculation = False
+
         iterate_order = [
             EntityElements.BASE,
             EntityElements.DIELINE,
@@ -117,27 +126,23 @@ class Entity:
         # TODO: pre calculate size in px for each element before applying resizing or without resizing
         def pre_calculate_sizes() -> dict[EntityElements, tuple[int, int]]:
             if resize:
-                s = {
+                return {
                     EntityElements.BASE: self.__output_data.get_size_px(),
                     EntityElements.DIELINE: self.__output_data.get_size_px(),
                     EntityElements.BLEED: self.__output_data.get_size_px(),
                 }
             else:
-                s = {
-                    EntityElements.BASE: self.__output_data.get_size_px(),
-                    EntityElements.DIELINE: self.__output_data.get_size_px(),
-                    EntityElements.BLEED: self.__output_data.get_size_px(),
+                height, width = self.__image.shape[:2]
+                return {
+                    EntityElements.BASE: (width, height),
+                    EntityElements.DIELINE: (width, height),
+                    EntityElements.BLEED: (width, height),
                 }
-
-            return s
 
         def is_element_valid(e: EntityElements, width: int, height: int) -> bool:
             img = self.__elements[e]
             if img is None:
                 return False
-
-            if not self.__can_resize(width, height):
-                return True
 
             h, w = img.shape[:2]
             if h == height and w == width:
@@ -160,9 +165,7 @@ class Entity:
 
             image = self.__elements[element]
 
-            if (image is None
-                    or self.__need_recalculation
-                    or not is_element_valid(element, *sizes[element])):
+            if image is None or not is_element_valid(element, *sizes[element]):
                 try:
                     image = element_selector[element](*sizes[element], resize)
                 except ValueError:
@@ -172,15 +175,12 @@ class Entity:
 
             output.append((image, element.name))
 
-        self.__need_recalculation = False
-
         return output
 
     def set_output_data(self, output_data: OutputData):
-        if self.__output_data is not None and self.__output_data  != output_data:
-            self.__output_data = output_data
+        if self.__output_data != output_data:
+            self.__output_data = replace(output_data)
             self.__need_recalculation = True
-
 
     def __can_resize(self, width: int, height: int) -> bool:
         return self.__output_data.is_valid() and width > 0 and height > 0

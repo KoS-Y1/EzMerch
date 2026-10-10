@@ -13,24 +13,22 @@ from .format import FileFormat
 logger = logging.getLogger(__name__)
 
 
-def export(path: pathlib.Path, document: Document, format: FileFormat) -> None:
-    output_path = path.with_suffix(f".{format.value}")
-
+def export(path: pathlib.Path, document: Document, file_format: FileFormat) -> None:
     def export_png():
         image = document.flatten()
-        if not cv2.imwrite(output_path, image):
-            raise ValueError(f"Failed to write image: {output_path}")
+        if not cv2.imwrite(path, image):
+            raise ValueError(f"Failed to write image: {path}")
     def export_psd():
         # TODO: placeholder for now
-        raise ValueError(f"Failed to write image: {output_path}, currently .psd not supported")
+        raise ValueError(f"Failed to write image: {path}, currently .psd not supported")
 
     export_selector = {
         FileFormat.PNG: export_png,
         FileFormat.PSD: export_psd
     }
 
-    export_selector[format]()
-    logger.info(f"Successfully export image: {output_path}")
+    export_selector[file_format]()
+    logger.info(f"Successfully export image: {path}")
 
 def load_image(path: pathlib.Path):
     image_formats = {"png", "jpeg"}

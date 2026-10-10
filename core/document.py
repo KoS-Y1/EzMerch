@@ -51,7 +51,8 @@ class Document:
             source_color = source[..., :3]
             source_alpha = source[..., 3:4]
 
-            color = source_color * source + color * (1.0 - source_alpha)
+
+            color = source_color * source_alpha + color * (1.0 - source_alpha)
             alpha = source_alpha + alpha * (1.0 - source_alpha)
 
         # to BGRA order
