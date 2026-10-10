@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from .entity import Entity, OutputData
+from .entity import Entity, OutputData, EntityElements
 
 from utils.format import FileFormat
 from utils.file_io import export
@@ -42,7 +42,7 @@ class Processor:
 
         self.__output_data = OutputData(width=0, height=0, dpi=OutputData.DEFAULT_DPI)
 
-        self.__entities = []
+        self.__entities : list[Entity]=[]
 
     def set_output_data(self, width: float, height: float, dpi: int = OutputData.DEFAULT_DPI,
                         unit: UnitType = UnitType.PX):
@@ -90,25 +90,31 @@ class Processor:
         logger.info("---------- Start exporting all cropped images ----------")
 
         self.__export_batch.clear_batch()
+        #
+        # for entity in self.__entities:
+        #     file_path = dst_path / f"{entity.get_name()}_cropped"
+        #     output_path = pathlib.Path(f"{file_path}.{file_format.value}")
+        #
+        #     output_image = entity.get_image()
+        #
+        #     if resize:
+        #         logger.info(f"Resizing image:{file_path}")
+        #         output_image = self.__resize_to_output(output_image)
+        #
+        #     try:
+        #         export(file_path, output_image, file_format)
+        #     except (OSError, ValueError, cv2.error) as exc:
+        #         logger.warning(f"Failed to export {file_path}, {exc}")
+        #         self.__export_batch.failed.append(output_path)
+        #         continue
 
+            # self.__export_batch.succeeded.append(output_path)
         for entity in self.__entities:
             file_path = dst_path / f"{entity.get_name()}_cropped"
-            output_path = pathlib.Path(f"{file_path}.{file_format.value}")
+            output_path = file_path.with_suffix(file_format.value)
 
-            output_image = entity.get_image()
-
-            if resize:
-                logger.info(f"Resizing image:{file_path}")
-                output_image = self.__resize_to_output(output_image)
-
-            try:
-                export(file_path, output_image, file_format)
-            except (OSError, ValueError, cv2.error) as exc:
-                logger.warning(f"Failed to export {file_path}, {exc}")
-                self.__export_batch.failed.append(output_path)
-                continue
-
-            self.__export_batch.succeeded.append(output_path)
+            entity.set_output_data(self.__output_data)
+            output_image = entity.get_elements({EntityElements.BASE})
 
         succeeded = "\n".join(str(path.resolve()) for path in self.__export_batch.succeeded)
         failed = "\n".join(str(path.resolve()) for path in self.__export_batch.failed)

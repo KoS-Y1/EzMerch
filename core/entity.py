@@ -107,14 +107,27 @@ class Entity:
     def get_name(self) -> str:
         return self.__name
 
-    def get_elements(self, elements: set[EntityElements]) -> list[tuple[cv2.typing.MatLike, str]]:
-        # TODO: pre calculate size in px for each element before applying resizing
+    def get_elements(self, elements: set[EntityElements], resize: bool = False) -> list[tuple[cv2.typing.MatLike, str]]:
+        iterate_order = [
+            EntityElements.BASE,
+            EntityElements.DIELINE,
+            EntityElements.BLEED,
+        ]
+
+        # TODO: pre calculate size in px for each element before applying resizing or without resizing
         def pre_calculate_sizes() -> dict[EntityElements, tuple[int, int]]:
-            s = {
-                EntityElements.BASE: self.__output_data.get_size_px(),
-                EntityElements.DIELINE: self.__output_data.get_size_px(),
-                EntityElements.BLEED: self.__output_data.get_size_px(),
-            }
+            if resize:
+                s = {
+                    EntityElements.BASE: self.__output_data.get_size_px(),
+                    EntityElements.DIELINE: self.__output_data.get_size_px(),
+                    EntityElements.BLEED: self.__output_data.get_size_px(),
+                }
+            else:
+                s = {
+                    EntityElements.BASE: self.__output_data.get_size_px(),
+                    EntityElements.DIELINE: self.__output_data.get_size_px(),
+                    EntityElements.BLEED: self.__output_data.get_size_px(),
+                }
 
             return s
 
@@ -132,13 +145,7 @@ class Entity:
 
             return False
 
-        iterate_order = [
-            EntityElements.BASE,
-            EntityElements.DIELINE,
-            EntityElements.BLEED,
-        ]
-
-        element_selector: dict[EntityElements, Callable[[int, int], cv2.typing.MatLike]] = {
+        element_selector: dict[EntityElements, Callable[[int, int, bool], cv2.typing.MatLike]] = {
             EntityElements.BASE: self.__calculate_base,
             EntityElements.DIELINE: self.__calculate_dieline,
             EntityElements.BLEED: self.__calculate_bleed,
@@ -157,7 +164,7 @@ class Entity:
                     or self.__need_recalculation
                     or not is_element_valid(element, *sizes[element])):
                 try:
-                    image = element_selector[element](*sizes[element])
+                    image = element_selector[element](*sizes[element], resize)
                 except ValueError:
                     logger.exception("Failed to calculate element")
                     raise
@@ -168,6 +175,12 @@ class Entity:
         self.__need_recalculation = False
 
         return output
+
+    def set_output_data(self, output_data: OutputData):
+        if self.__output_data is not None and self.__output_data  != output_data:
+            self.__output_data = output_data
+            self.__need_recalculation = True
+
 
     def __can_resize(self, width: int, height: int) -> bool:
         return self.__output_data.is_valid() and width > 0 and height > 0
@@ -213,13 +226,19 @@ class Entity:
         logger.info(f"Successfully resize image from {width, height} to {out_width_px, out_height_px}")
         return out
 
-    def __calculate_base(self, width: int, height: int) -> cv2.typing.MatLike:
+    def __calculate_base(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+        if not resize:
+            return self.__image
         return self.__resize(self.__image, width, height)
 
     # TODO: may need to apply other things
-    def __calculate_dieline(self, width: int, height: int) -> cv2.typing.MatLike:
+    def __calculate_dieline(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+        if not resize:
+            return self.__image
         return self.__resize(self.__image, width, height)
 
     # TODO:
-    def __calculate_bleed(self, width: int, height: int) -> cv2.typing.MatLike:
+    def __calculate_bleed(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+        if not resize:
+            return self.__image
         return self.__resize(self.__image, width, height)
