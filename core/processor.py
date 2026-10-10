@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import cv2
 
 from .document import Document
-from .entity import Entity, OutputData, EntityElements
+from .entity import Entity, OutputData, EntityElements, DEFAULT_DPI, DielineData
 
 from utils.format import FileFormat
 from utils.file_io import export
@@ -40,11 +40,12 @@ class Processor:
         self.__load_batch = BatchResult(succeeded=[], failed=[])
         self.__export_batch = BatchResult(succeeded=[], failed=[])
 
-        self.__output_data = OutputData(width=0, height=0, dpi=OutputData.DEFAULT_DPI)
+        self.__output_data = OutputData(width=0, height=0, dpi=DEFAULT_DPI)
+        self.__dieline_data = DielineData()
 
         self.__entities: list[Entity] = []
 
-    def set_output_data(self, width: float, height: float, dpi: int = OutputData.DEFAULT_DPI,
+    def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
                         unit: UnitType = UnitType.PX):
         self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit)
 
@@ -57,6 +58,10 @@ class Processor:
 
     def set_output_unit(self, unit: UnitType) -> None:
         self.__output_data.unit = unit
+
+    def set_dieline_data(self, thickness: float, distance: float, dpi: int = DEFAULT_DPI,
+                         unit: UnitType = UnitType.PX) -> None:
+        self.__dieline_data = DielineData(thickness=thickness, distance=distance, unit=unit, dpi=dpi)
 
     def clear_entity_list(self) -> None:
         self.__entities.clear()
@@ -117,3 +122,10 @@ class Processor:
             f"Successfully exported:\n{succeeded or '(none)'}\n"
             f"Failed to export:\n{failed or '(none)'}\n"
         )
+
+    def export_all_dieline(self, dst_path: pathlib.Path, file_format: FileFormat, resize: bool = False) -> None:
+        for entity in self.__entities:
+            entity.set_output_data(self.__output_data)
+            entity.set_dieline_data(self.__dieline_data)
+
+            entity.get_elements({EntityElements.DIELINE}, resize)

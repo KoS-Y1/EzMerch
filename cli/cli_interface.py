@@ -1,4 +1,4 @@
-# 
+#
 # Created by y1 on 2026-10-03
 #
 
@@ -35,11 +35,11 @@ class CLIInterface:
         crop.set_defaults(handler=self.__crop)
 
         dieline = commands.add_parser("dieline", parents=[shared])
-        dieline.add_argument("--distant", type=float, default=20,
-                             help="Dieline distant from original image, 20px by default")
+        dieline.add_argument("--distance", type=float, default=20,
+                             help="Dieline distance from original image, 20px by default")
         dieline.add_argument("--thickness", type=float, default=4, help="Dieline thickness, 4px by default")
         dieline.add_argument("--dieline_unit", choices=["px", "mm"], default="px", help="Dieline unit, px by default")
-
+        dieline.set_defaults(handler=self.__dieline)
 
     def execute(self, processor: Processor):
         args = self.parser.parse_args()
@@ -59,3 +59,9 @@ class CLIInterface:
     def __crop(args, processor: Processor):
         resize = args.size is not None
         processor.export_all_cropped(args.dest, FileFormat(args.format), resize)
+
+    @staticmethod
+    def __dieline(args, processor: Processor):
+        processor.set_dieline_data(args.thickness, args.distance, args.dpi, UnitType(args.dieline_unit))
+        resize = args.size is not None
+        processor.export_all_dieline(args.dest, FileFormat(args.format), resize)

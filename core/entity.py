@@ -6,6 +6,7 @@ import pathlib
 import logging
 from dataclasses import dataclass, replace
 from enum import Enum
+from statistics import median
 from typing import Callable
 
 import numpy as np
@@ -24,21 +25,22 @@ class EntityElements(Enum):
     BLEED = "bleed"
 
 
+DEFAULT_DPI = 300
+DEFAULT_UNIT_TYPE = UnitType.PX
+
+
 @dataclass
 class OutputData:
-    DEFAULT_DPI = 300
-    DEFAULT_UNIT_TYPE = UnitType.PX
-
     dpi: int = DEFAULT_DPI
-    width: float = 0
-    height: float = 0
     unit: UnitType = UnitType.PX
+    width: float = 0.0
+    height: float = 0.0
 
-    def clear_output(self) -> None:
-        self.width = 0
-        self.height = 0
-        self.dpi = self.DEFAULT_DPI
-        self.unit = self.DEFAULT_UNIT_TYPE
+    def clear(self) -> None:
+        self.width = 0.0
+        self.height = 0.0
+        self.dpi = DEFAULT_DPI
+        self.unit = DEFAULT_UNIT_TYPE
 
     def get_size_px(self) -> tuple[int, int]:
         def unit_px() -> tuple[int, int]:
@@ -56,6 +58,51 @@ class OutputData:
 
     def is_valid(self) -> bool:
         return self.width > 0 and self.height > 0 and self.dpi > 0
+
+
+@dataclass
+class DielineData:
+    dpi: int = DEFAULT_DPI
+    unit: UnitType = UnitType.PX
+    thickness: float = 0.0
+    distance: float = 0.0
+
+    def clear(self):
+        self.dpi = DEFAULT_DPI
+        self.unit = UnitType.PX
+        self.thickness = 0.0
+        self.distance = 0.0
+
+    def get_thickness_px(self) -> int:
+        def unit_px() -> int:
+            return round(self.thickness)
+
+        def unit_mm() -> int:
+            return mm_to_px(self.thickness, self.dpi)
+
+        get_thickness_selector = {
+            UnitType.PX: unit_px,
+            UnitType.MM: unit_mm,
+        }
+
+        return get_thickness_selector[self.unit]()
+
+    def get_distance_px(self) -> int:
+        def unit_px() -> int:
+            return round(self.distance)
+
+        def unit_mm() -> int:
+            return mm_to_px(self.distance, self.dpi)
+
+        get_distance_selector = {
+            UnitType.PX: unit_px,
+            UnitType.MM: unit_mm,
+        }
+
+        return get_distance_selector[self.unit]()
+
+    def is_valid(self):
+        return self.distance > 0 and self.thickness > 0 and self.dpi > 0
 
 
 class Entity:
@@ -104,6 +151,8 @@ class Entity:
             EntityElements.DIELINE: None,
             EntityElements.BLEED: None,
         }
+
+        self.__dieline_data = DielineData()
 
     def get_name(self) -> str:
         return self.__name
@@ -177,9 +226,14 @@ class Entity:
 
         return output
 
-    def set_output_data(self, output_data: OutputData):
+    def set_output_data(self, output_data: OutputData) -> None:
         if self.__output_data != output_data:
             self.__output_data = replace(output_data)
+            self.__need_recalculation = True
+
+    def set_dieline_data(self, dieline_data: DielineData) -> None:
+        if self.__dieline_data != dieline_data:
+            self.__dieline_data = replace(dieline_data)
             self.__need_recalculation = True
 
     def __can_resize(self, width: int, height: int) -> bool:
@@ -231,10 +285,37 @@ class Entity:
             return self.__image
         return self.__resize(self.__image, width, height)
 
-    # TODO: may need to apply other things
     def __calculate_dieline(self, width: int, height: int, resize: bool = False) -> cv2.typing.MatLike:
+        distance = self.__dieline_data.get_distance_px()
+        thickness = self.__dieline_data.get_thickness_px()
+
+        GAUSSIAN_BLUR_KERNEL = (21, 21)
+
+        print(f"thickness{thickness}, distance{distance}")
         if not resize:
-            return self.__image
+            padding = distance + thickness + 1
+            _, mask = cv2.threshold(self.__image[:, :, 3], 0, 255, cv2.THRESH_BINARY)
+            mask = cv2.copyMakeBorder(mask, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=0)
+
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * distance + 1, 2 * distance + 1))
+            expanded = cv2.dilate(mask, kernel)
+
+            smoothed = cv2.GaussianBlur(expanded, GAUSSIAN_BLUR_KERNEL, sigmaX=0)
+            _, smoothed = cv2.threshold(smoothed, 127, 255, cv2.THRESH_BINARY)
+            cv2.imwrite("./smoothed.png", smoothed)
+            contour, _ = cv2.findContours(smoothed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            stroke_alpha = np.zeros(mask.shape, dtype=np.uint8)
+            cv2.drawContours(stroke_alpha, contour, -1,  color=255, thickness=thickness, lineType=cv2.LINE_AA)
+            dieline = np.zeros((*mask.shape, 4), dtype=np.uint8)
+            dieline[:,:,3]=stroke_alpha
+            median = cv2.medianBlur(dieline, 5)
+            cv2.imwrite("./median.png", median)
+            cv2.imwrite("./dieline.png", dieline)
+            dieline_smoothed = cv2.GaussianBlur(dieline, (5,5), sigmaX=0)
+            _, dieline_smoothed = cv2.threshold(dieline_smoothed, 127, 255, cv2.THRESH_BINARY)
+            cv2.imwrite("./dielines.png", dieline_smoothed)
+            return dieline
         return self.__resize(self.__image, width, height)
 
     # TODO:
