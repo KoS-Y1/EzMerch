@@ -66,7 +66,7 @@ class CLIInterface:
         processor.set_dieline_distance(args.distance)
 
         if args.dieline_unit is not None:
-            processor.set_dieline_unit(args.dieline_unit)
+            processor.set_dieline_unit(UnitType(args.dieline_unit))
 
         resize = args.size is not None
         processor.export_all_dieline(args.dest, FileFormat(args.format), resize)

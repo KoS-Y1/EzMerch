@@ -47,35 +47,30 @@ class Processor:
 
     def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
                         unit: UnitType = UnitType.PX):
-        output_data =OutputData(width=width, height=height, dpi=dpi, unit=unit)
-        if self.__output_data != output_data:
-            self.__output_data = replace(output_data)
+        self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit)
 
     def set_output_size(self, width: float, height: float) -> None:
-        self.__output_data.width = width
-        self.__output_data.height = height
+        self.__output_data = replace(self.__output_data, width=width, height=height)
 
     def set_output_dpi(self, dpi: int) -> None:
-        self.__output_data.dpi = dpi
-        self.__dieline_data.dpi = dpi
+        self.__output_data = replace(self.__output_data, dpi=dpi)
+        self.__dieline_data = replace(self.__dieline_data, dpi=dpi)
 
     def set_output_unit(self, unit: UnitType) -> None:
-        self.__output_data.unit = unit
+        self.__output_data = replace(self.__output_data, unit=unit)
 
     def set_dieline_data(self, thickness: float, distance: float, dpi: int = DEFAULT_DPI,
                          unit: UnitType = UnitType.PX) -> None:
-        dieline_data = DielineData(thickness=thickness, distance=distance, unit=unit, dpi=dpi)
-        if self.__dieline_data != dieline_data:
-            self.__dieline_data = replace(dieline_data)
+        self.__dieline_data = DielineData(thickness=thickness, distance=distance, unit=unit, dpi=dpi)
 
-    def set_dieline_distance(self, distance: float)->None:
-        self.__dieline_data.distance = distance
+    def set_dieline_distance(self, distance: float) -> None:
+        self.__dieline_data = replace(self.__dieline_data, distance=distance)
 
-    def set_dieline_thickness(self, thickness: float)->None:
-        self.__dieline_data.thickness = thickness
+    def set_dieline_thickness(self, thickness: float) -> None:
+        self.__dieline_data = replace(self.__dieline_data, thickness=thickness)
 
-    def set_dieline_unit(self, unit:UnitType)->None:
-        self.__dieline_data.unit = unit
+    def set_dieline_unit(self, unit: UnitType) -> None:
+        self.__dieline_data = replace(self.__dieline_data, unit=unit)
 
 
     def clear_entity_list(self) -> None:
@@ -124,7 +119,7 @@ class Processor:
                 self.__export_batch.failed.append(output_path)
                 continue
 
-            doc = Document()
+            doc = Document(dpi=self.__output_data.dpi)
             doc.add_folder(output_images, entity.get_name())
 
             try:
@@ -162,7 +157,7 @@ class Processor:
                 self.__export_batch.failed.append(output_path)
                 continue
 
-            document = Document()
+            document = Document(dpi=self.__output_data.dpi)
             document.add_folder(output_images, entity.get_name())
 
             try:

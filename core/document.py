@@ -23,7 +23,8 @@ class Document:
         name: str
         layers: list["Document.Layer"]
 
-    def __init__(self):
+    def __init__(self, dpi: int = 300):
+        self.dpi = dpi
         self.folders: list[Document.Folder] = []
 
     def flatten(self) -> cv2.typing.MatLike:

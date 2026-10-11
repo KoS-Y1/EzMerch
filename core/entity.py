@@ -138,6 +138,7 @@ class Entity:
         self.__image = crop_transparent()
         self.__need_recalculation = True
         self.__cached_resize = False
+        self.__cached_elements: frozenset[EntityElements] = frozenset()
         self.__elements: dict[EntityElements, cv2.typing.MatLike | None] = {
             EntityElements.BASE: None,
             EntityElements.DIELINE: None,
@@ -146,19 +147,16 @@ class Entity:
 
         height, width = self.__image.shape[:2]
         self.__base_size = (width, height)
+        self.__output_size_px = (width, height)
         self.__dieline_data = DielineData()
 
     def get_name(self) -> str:
         return self.__name
 
     def get_elements(self, elements: set[EntityElements], resize: bool = False) -> list[tuple[cv2.typing.MatLike, str]]:
-        if resize != self.__cached_resize:
+        requested_elements = frozenset(elements)
+        if resize != self.__cached_resize or requested_elements != self.__cached_elements:
             self.__need_recalculation = True
-
-        if self.__need_recalculation:
-            self.__elements = dict.fromkeys(self.__elements, None)
-            self.__cached_resize = resize
-            self.__need_recalculation = False
 
         iterate_order = [
             EntityElements.BASE,
@@ -186,24 +184,37 @@ class Entity:
 
             paddings: list[int] = []
 
-            for element in elements:
-                paddings.append(padding_selector[element]())
+            for e in elements:
+                paddings.append(padding_selector[e]())
 
-            max_padding = max(paddings)
+            max_padding = max(paddings, default=0)
 
             if resize:
                 width, height = self.__output_data.get_size_px()
-                self.__base_size = (width - 2 * max_padding, height - 2 * max_padding)
+                base_width = width - 2 * max_padding
+                base_height = height - 2 * max_padding
+                if base_width < 1 or base_height < 1:
+                    raise ValueError("Output size leaves less than one pixel for the base image after padding")
+                self.__base_size = (base_width, base_height)
+                self.__output_size_px = (width, height)
             else:
-                width, height = self.__base_size
-                output_width =
+                height, width = self.__image.shape[:2]
+                self.__base_size = (width, height)
+                self.__output_size_px = (width + 2 * max_padding, height + 2 * max_padding)
+
+        if self.__need_recalculation:
+            pre_calculate_sizes()
+            self.__elements = dict.fromkeys(self.__elements, None)
+            self.__cached_resize = resize
+            self.__cached_elements = requested_elements
+            self.__need_recalculation = False
 
         def is_element_valid(e: EntityElements) -> bool:
             img = self.__elements[e]
             if img is None:
                 return False
 
-            out_width, out_height = self.__output_data.get_size_px()
+            out_width, out_height = self.__output_size_px
             return img.shape[:2] == (out_height, out_width)
 
         element_selector: dict[EntityElements, Callable[[bool], cv2.typing.MatLike]] = {
@@ -238,8 +249,7 @@ class Entity:
             self.__need_recalculation = True
 
     def set_output_size(self, width:float, height:float):
-        self.__output_data.width = width
-        self.__output_data.height = height
+        self.set_output_data(replace(self.__output_data, width=width, height=height))
 
     def set_dieline_data(self, dieline_data: DielineData) -> None:
         if self.__dieline_data != dieline_data:
@@ -293,7 +303,7 @@ class Entity:
     def __calculate_base(self, resize: bool = False) -> cv2.typing.MatLike:
         image = self.__resize(self.__image, *self.__base_size) if resize else self.__image
 
-        return self.__center_image(image, *self.__output_data.get_size_px())
+        return self.__center_image(image, *self.__output_size_px)
 
     def __calculate_dieline(self, resize: bool = False) -> cv2.typing.MatLike:
         distance = self.__dieline_data.get_distance_px()
@@ -301,7 +311,6 @@ class Entity:
 
         gaussian_blur_kernel = (5, 5)
 
-        print(f"thickness{thickness}, distance{distance}")
         if not resize:
             padding = distance + thickness + 1
             _, mask = cv2.threshold(self.__image[:, :, 3], 0, 255, cv2.THRESH_BINARY)
@@ -322,7 +331,7 @@ class Entity:
             dieline_smoothed = cv2.medianBlur(dieline, 5)
             cv2.imwrite("./median1.png", dieline_smoothed)
             cv2.imwrite("./dieline1.png", dieline)
-            return self.__center_image(dieline_smoothed, *self.__output_data.get_size_px())
+            return self.__center_image(dieline_smoothed, *self.__output_size_px)
         return self.__resize(self.__image, *self.__output_data.get_size_px())
 
     # TODO:
