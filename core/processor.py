@@ -9,11 +9,10 @@ from dataclasses import dataclass, replace
 import cv2
 
 from .document import Document
-from .entity import Entity, OutputData, EntityElements, DEFAULT_DPI, DielineData, BleedData
+from .entity import Entity, EntityElements, DielineData, BleedData
+from .output_setting import DEFAULT_DPI, OutputData, FileFormat, UnitType, ColorFormat
 
-from utils.format import FileFormat
 from utils.file_io import export
-from utils.units import UnitType
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +46,8 @@ class Processor:
         self.__entities: list[Entity] = []
 
     def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
-                        unit: UnitType = UnitType.PX):
-        self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit)
+                        unit: UnitType = UnitType.PX, color:ColorFormat = ColorFormat.RGB) -> None:
+        self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit, color=color)
 
     def set_output_size(self, width: float, height: float) -> None:
         self.__output_data = replace(self.__output_data, width=width, height=height)
@@ -60,6 +59,9 @@ class Processor:
 
     def set_output_unit(self, unit: UnitType) -> None:
         self.__output_data = replace(self.__output_data, unit=unit)
+
+    def set_output_color(self, color:ColorFormat) -> None:
+        self.__output_data = replace(self.__output_data, color=color)
 
     def set_dieline_data(self, thickness: float, distance: float, dpi: int = DEFAULT_DPI,
                          unit: UnitType = UnitType.PX) -> None:
@@ -113,14 +115,12 @@ class Processor:
 
     def export_all(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
                    resize: bool = False) -> None:
-        # Placeholder for same format
         def set_base_data(e: Entity) -> None:
             return
 
         def set_dieline_data(e: Entity) -> None:
             e.set_dieline_data(self.__dieline_data)
 
-        # TODO
         def set_bleed_data(e: Entity) -> None:
             e.set_bleed_data(self.__bleed_data)
 
@@ -147,13 +147,14 @@ class Processor:
                 set_data_selector[e](entity)
 
             try:
-                output_images = entity.get_elements(elements, resize)
+                output_images, (width, height) = entity.get_elements(elements, resize)
             except (OSError, cv2.error, ValueError) as exc:
                 logger.warning(f"Failed to get elements from {entity.get_name()}, {exc}")
                 self.__export_batch.failed.append(output_path)
                 continue
 
-            doc = Document(dpi=self.__output_data.dpi)
+            document_output = replace(self.__output_data, width=width, height=height, unit=UnitType.PX)
+            doc = Document(output_data=document_output)
             doc.add_folder(output_images, entity.get_name())
 
             try:

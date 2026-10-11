@@ -9,8 +9,7 @@ import pathlib
 
 from core.entity import EntityElements
 from core.processor import Processor
-from utils.format import FileFormat
-from utils.units import UnitType
+from core.output_setting import FileFormat, UnitType, ColorFormat
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class CLIInterface:
         shared.add_argument("--size", nargs=2, type=float, help="Output width and height, in px by default")
         shared.add_argument("--dpi", type=int, help="Output dpi")
         shared.add_argument("--unit", choices=["px", "mm"], default="px", help="Output unit, px by default")
-        shared.add_argument("--color", choices=["rgb", "cmyk"], default="rgb",
+        shared.add_argument("--color", choices=["RGB", "CMYK"], default="RGB",
                             help="Output color mode, rgb by default (psd only)")
         commands = self.parser.add_subparsers(dest="command", required=True)
 
@@ -53,6 +52,7 @@ class CLIInterface:
         logger.info("---------- EzSticker running from CLI----------")
 
         processor.set_output_unit(UnitType(args.unit))
+        processor.set_output_color(ColorFormat(args.color))
         if args.size is not None:
             processor.set_output_size(*args.size)
         if args.dpi is not None:

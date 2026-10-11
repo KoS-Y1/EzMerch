@@ -1,10 +1,12 @@
 #
 # Created by y1 on {2026-10-09}
 #
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import cv2.typing
 import numpy as np
+
+from .output_setting import OutputData
 
 
 class Document:
@@ -23,14 +25,23 @@ class Document:
         name: str
         layers: list["Document.Layer"]
 
-    def __init__(self, dpi: int = 300):
-        self.dpi = dpi
-        self.folders: list[Document.Folder] = []
+    def __init__(self, output_data: OutputData | None = None):
+        self.__output_data = OutputData() if output_data is None else replace(output_data)
+        self.__folders: list[Document.Folder] = []
+
+    def set_output_data(self, output_data: OutputData) -> None:
+        self.__output_data = replace(output_data)
+
+    def get_output_data(self) -> OutputData:
+        return replace(self.__output_data)
+
+    def get_folders(self) -> list["Document.Folder"]:
+        return self.__folders.copy()
 
     def flatten(self) -> cv2.typing.MatLike:
         layers = [
             layer
-            for folder in reversed(self.folders)
+            for folder in reversed(self.__folders)
             for layer in reversed(folder.layers)
         ]
 
@@ -73,4 +84,4 @@ class Document:
             for data, layer_name in images
         ]
 
-        self.folders.append(Document.Folder(name=name, layers=layers))
+        self.__folders.append(Document.Folder(name=name, layers=layers))

@@ -12,8 +12,10 @@ import numpy as np
 
 import cv2
 
+from .output_setting import DEFAULT_DPI, OutputData, UnitType
+
 from utils.file_io import load_image
-from utils.units import UnitType, mm_to_px
+from utils.units import mm_to_px
 
 logger = logging.getLogger(__name__)
 
@@ -22,41 +24,6 @@ class EntityElements(Enum):
     BASE = "base"
     DIELINE = "dieline"
     BLEED = "bleed"
-
-
-DEFAULT_DPI = 300
-DEFAULT_UNIT_TYPE = UnitType.PX
-
-
-@dataclass
-class OutputData:
-    dpi: int = DEFAULT_DPI
-    unit: UnitType = UnitType.PX
-    width: float = 0.0
-    height: float = 0.0
-
-    def clear(self) -> None:
-        self.width = 0.0
-        self.height = 0.0
-        self.dpi = DEFAULT_DPI
-        self.unit = DEFAULT_UNIT_TYPE
-
-    def get_size_px(self) -> tuple[int, int]:
-        def unit_px() -> tuple[int, int]:
-            return round(self.width), round(self.height)
-
-        def unit_mm() -> tuple[int, int]:
-            return mm_to_px(self.width, self.dpi), mm_to_px(self.height, self.dpi)
-
-        get_size_selector = {
-            UnitType.PX: unit_px,
-            UnitType.MM: unit_mm,
-        }
-
-        return get_size_selector[self.unit]()
-
-    def is_valid(self) -> bool:
-        return self.width > 0 and self.height > 0 and self.dpi > 0
 
 
 @dataclass
@@ -183,7 +150,9 @@ class Entity:
     def get_name(self) -> str:
         return self.__name
 
-    def get_elements(self, elements: set[EntityElements], resize: bool = False) -> list[tuple[cv2.typing.MatLike, str]]:
+    def get_elements(
+        self, elements: set[EntityElements], resize: bool = False
+    ) -> tuple[list[tuple[cv2.typing.MatLike, str]], tuple[int, int]]:
         def pre_calculate_sizes() -> None:
             def base_padding() -> int:
                 return 0
@@ -269,7 +238,7 @@ class Entity:
 
             output.append((image, element.name))
 
-        return output
+        return output, self.__output_size_px
 
     def set_output_data(self, output_data: OutputData) -> None:
         if self.__output_data != output_data:
