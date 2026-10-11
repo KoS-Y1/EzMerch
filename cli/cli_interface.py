@@ -7,6 +7,7 @@ import logging
 import argparse
 import pathlib
 
+from core.entity import EntityElements
 from core.processor import Processor
 from utils.format import FileFormat
 from utils.units import UnitType
@@ -58,7 +59,7 @@ class CLIInterface:
     @staticmethod
     def __crop(args, processor: Processor):
         resize = args.size is not None
-        processor.export_all_cropped(args.dest, FileFormat(args.format), resize)
+        processor.export_all(args.dest, FileFormat(args.format), {EntityElements.BASE}, resize)
 
     @staticmethod
     def __dieline(args, processor: Processor):
@@ -69,4 +70,4 @@ class CLIInterface:
             processor.set_dieline_unit(UnitType(args.dieline_unit))
 
         resize = args.size is not None
-        processor.export_all_dieline(args.dest, FileFormat(args.format), resize)
+        processor.export_all(args.dest, FileFormat(args.format), {EntityElements.BASE, EntityElements.DIELINE}, resize)

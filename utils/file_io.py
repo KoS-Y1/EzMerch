@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def export(path: pathlib.Path, document: Document, file_format: FileFormat) -> None:
     def export_png():
         image = cv2.cvtColor(document.flatten(), cv2.COLOR_BGRA2RGBA)
-        Image.fromarray(image).save(path, format="PNG", dpi=(document.dpi, document.dpi))
+        Image.fromarray(np.asarray(image)).save(path, format="PNG", dpi=(document.dpi, document.dpi))
     def export_psd():
         # TODO: placeholder for now
         raise ValueError(f"Failed to write image: {path}, currently .psd not supported")

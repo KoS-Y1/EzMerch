@@ -72,7 +72,6 @@ class Processor:
     def set_dieline_unit(self, unit: UnitType) -> None:
         self.__dieline_data = replace(self.__dieline_data, unit=unit)
 
-
     def clear_entity_list(self) -> None:
         self.__entities.clear()
 
@@ -101,19 +100,43 @@ class Processor:
             f"Failed to load:\n{failed or '(none)'}\n"
         )
 
-    def export_all_cropped(self, dst_path: pathlib.Path, file_format: FileFormat, resize: bool = False) -> None:
-        logger.info("---------- Start exporting all cropped images ----------")
+    def export_all(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
+                   resize: bool = False) -> None:
+        # Placeholder for same format
+        def set_base_data(e: Entity) -> None:
+            return
+
+        def set_dieline_data(e: Entity) -> None:
+            e.set_dieline_data(self.__dieline_data)
+
+        # TODO
+        def set_bleed_data(e: Entity) -> None:
+            return
+
+        set_data_selector = {
+            EntityElements.BASE: set_base_data,
+            EntityElements.DIELINE: set_dieline_data,
+            EntityElements.BLEED: set_bleed_data,
+        }
+
+        element_strs = ",".join(sorted(e.value for e in elements))
+        logger.info(f"---------- Start exporting all images with {element_strs}")
 
         self.__export_batch.clear_batch()
 
-        for entity in self.__entities:
+        element_strs = element_strs.replace(",", "_")
+        element_strs = "_" + element_strs
 
-            output_path = (dst_path / f"{entity.get_name()}_cropped").with_suffix(f".{file_format.value}")
+        for entity in self.__entities:
+            output_path = (dst_path / f"{entity.get_name()}{element_strs}").with_suffix(f".{file_format.value}")
 
             entity.set_output_data(self.__output_data)
 
+            for e in elements:
+                set_data_selector[e](entity)
+
             try:
-                output_images = entity.get_elements({EntityElements.BASE}, resize)
+                output_images = entity.get_elements(elements, resize)
             except (OSError, cv2.error, ValueError) as exc:
                 logger.warning(f"Failed to get elements from {entity.get_name()}, {exc}")
                 self.__export_batch.failed.append(output_path)
@@ -138,41 +161,3 @@ class Processor:
             f"Successfully exported:\n{succeeded or '(none)'}\n"
             f"Failed to export:\n{failed or '(none)'}\n"
         )
-
-    def export_all_dieline(self, dst_path: pathlib.Path, file_format: FileFormat, resize: bool = False) -> None:
-        logger.info("---------- Start exporting all cropped images ----------")
-
-        self.__export_batch.clear_batch()
-
-        for entity in self.__entities:
-            output_path = (dst_path / f"{entity.get_name()}_dieline").with_suffix(f".{file_format.value}")
-
-            entity.set_output_data(self.__output_data)
-            entity.set_dieline_data(self.__dieline_data)
-
-            try:
-                output_images = entity.get_elements({EntityElements.BASE, EntityElements.DIELINE}, resize)
-            except (OSError, cv2.error, ValueError) as exc:
-                logger.warning(f"Failed to get elements from {entity.get_name()}, {exc}")
-                self.__export_batch.failed.append(output_path)
-                continue
-
-            document = Document(dpi=self.__output_data.dpi)
-            document.add_folder(output_images, entity.get_name())
-
-            try:
-                export(output_path, document, file_format)
-            except (OSError, cv2.error, ValueError) as exc:
-                logger.warning(f"Failed to export {output_path}, {exc}")
-                self.__export_batch.failed.append(output_path)
-                continue
-
-            self.__export_batch.succeeded.append(output_path)
-
-            succeeded = "\n".join(str(path.resolve()) for path in self.__export_batch.succeeded)
-            failed = "\n".join(str(path.resolve()) for path in self.__export_batch.failed)
-            logger.info(
-                f"Finish exporting:\n"
-                f"Successfully exported:\n{succeeded or '(none)'}\n"
-                f"Failed to export:\n{failed or '(none)'}\n"
-            )
