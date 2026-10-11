@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 from core.document import Document
-from .format import FileFormat
+from format import FileFormat
 
 logger = logging.getLogger(__name__)
 

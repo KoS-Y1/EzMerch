@@ -42,6 +42,12 @@ class CLIInterface:
         dieline.add_argument("--dieline_unit", choices=["px", "mm"], default="px", help="Dieline unit, px by default")
         dieline.set_defaults(handler=self.__dieline)
 
+        bleed = commands.add_parser("bleed", parents=[shared])
+        bleed.add_argument("--distance", type=float, default=20,
+                           help="Bleed line distance from original image, 20px by default")
+        bleed.add_argument("--bleed_unit", choices=["px", "mm"], default="px", help="Bleed line unit, px by default")
+        bleed.set_defaults(handler=self.__bleed)
+
     def execute(self, processor: Processor):
         args = self.parser.parse_args()
         logger.info("---------- EzSticker running from CLI----------")
@@ -71,3 +77,16 @@ class CLIInterface:
 
         resize = args.size is not None
         processor.export_all(args.dest, FileFormat(args.format), {EntityElements.BASE, EntityElements.DIELINE}, resize)
+
+    @staticmethod
+    def __bleed(args, processor: Processor):
+        processor.set_bleed_distance(args.distance)
+        processor.set_dieline_thickness(4)
+        processor.set_dieline_distance(20)
+
+        if args.bleed_unit is not None:
+            processor.set_bleed_unit(UnitType(args.bleed_unit))
+
+        resize = args.size is not None
+        processor.export_all(args.dest, FileFormat(args.format),
+                             {EntityElements.BASE, EntityElements.DIELINE, EntityElements.BLEED}, resize)

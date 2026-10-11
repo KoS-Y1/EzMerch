@@ -9,7 +9,7 @@ from dataclasses import dataclass, replace
 import cv2
 
 from .document import Document
-from .entity import Entity, OutputData, EntityElements, DEFAULT_DPI, DielineData
+from .entity import Entity, OutputData, EntityElements, DEFAULT_DPI, DielineData, BleedData
 
 from utils.format import FileFormat
 from utils.file_io import export
@@ -42,6 +42,7 @@ class Processor:
 
         self.__output_data = OutputData(width=0, height=0, dpi=DEFAULT_DPI)
         self.__dieline_data = DielineData()
+        self.__bleed_data = BleedData()
 
         self.__entities: list[Entity] = []
 
@@ -55,6 +56,7 @@ class Processor:
     def set_output_dpi(self, dpi: int) -> None:
         self.__output_data = replace(self.__output_data, dpi=dpi)
         self.__dieline_data = replace(self.__dieline_data, dpi=dpi)
+        self.__bleed_data = replace(self.__bleed_data, dpi=dpi)
 
     def set_output_unit(self, unit: UnitType) -> None:
         self.__output_data = replace(self.__output_data, unit=unit)
@@ -71,6 +73,15 @@ class Processor:
 
     def set_dieline_unit(self, unit: UnitType) -> None:
         self.__dieline_data = replace(self.__dieline_data, unit=unit)
+
+    def set_bleed_data(self, distance: float, dpi: int = DEFAULT_DPI, unit: UnitType = UnitType.PX) -> None:
+        self.__bleed_data = BleedData(distance=distance, dpi=dpi, unit=unit)
+
+    def set_bleed_distance(self, distance: float) -> None:
+        self.__bleed_data = replace(self.__bleed_data, distance=distance)
+
+    def set_bleed_unit(self, unit: UnitType) -> None:
+        self.__bleed_data = replace(self.__bleed_data, unit=unit)
 
     def clear_entity_list(self) -> None:
         self.__entities.clear()
@@ -111,7 +122,7 @@ class Processor:
 
         # TODO
         def set_bleed_data(e: Entity) -> None:
-            return
+            e.set_bleed_data(self.__bleed_data)
 
         set_data_selector = {
             EntityElements.BASE: set_base_data,
