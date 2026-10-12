@@ -4,9 +4,14 @@
 
 import logging
 
+from PySide6.QtWidgets import QApplication
+
 from core.processor import Processor
 
 from cli.cli_interface import CLIInterface
+from gui.i18n import i18n
+from gui.main_window import MainWindow
+from gui.presenter import StickerPresenter
 
 
 def main() -> None:
@@ -35,9 +40,17 @@ def main() -> None:
 
     processor = Processor()
 
-    cli = CLIInterface()
-    cli.execute(processor)
 
+    # cli = CLIInterface()
+    # cli.execute(processor)
+
+    app = QApplication([])
+
+    window = MainWindow()
+    presenter = StickerPresenter(window, processor)
+    window.show()
+
+    app.exec()
 
 if __name__ == "__main__":
     main()

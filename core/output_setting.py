@@ -1,3 +1,7 @@
+#
+# Created by y1 on 2026-10-11
+#
+
 from dataclasses import dataclass
 from enum import Enum
 
@@ -20,6 +24,7 @@ class ColorFormat(Enum):
 
 
 DEFAULT_DPI = 300
+MAX_OUTPUT_DIMENSION_PX = 50_000
 DEFAULT_UNIT_TYPE = UnitType.PX
 
 

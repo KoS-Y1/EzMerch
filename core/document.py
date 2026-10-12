@@ -1,6 +1,7 @@
 #
-# Created by y1 on {2026-10-09}
+# Created by y1 on 2026-10-09
 #
+
 from dataclasses import dataclass, replace
 
 import cv2.typing

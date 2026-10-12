@@ -7,6 +7,8 @@ import logging
 import argparse
 import pathlib
 
+from .argument_types import positive_float, nonnegative_float, positive_int
+
 from core.entity import EntityElements
 from core.processor import Processor
 from core.output_setting import FileFormat, UnitType, ColorFormat
@@ -24,8 +26,8 @@ class CLIInterface:
         shared.add_argument("--dest", type=pathlib.Path, help="Output path", required=True)
         shared.add_argument("--format", choices=["png", "psd"], default="png",
                             help="Output file format, png by default")
-        shared.add_argument("--size", nargs=2, type=float, help="Output width and height, in px by default")
-        shared.add_argument("--dpi", type=int, help="Output dpi")
+        shared.add_argument("--size", nargs=2, type=positive_float, help="Output width and height, in px by default")
+        shared.add_argument("--dpi", type=positive_int, help="Output dpi")
         shared.add_argument("--unit", choices=["px", "mm"], default="px", help="Output unit, px by default")
         shared.add_argument("--color", choices=["RGB", "CMYK"], default="RGB",
                             help="Output color mode, rgb by default (psd only)")
@@ -35,14 +37,14 @@ class CLIInterface:
         crop.set_defaults(handler=self.__crop)
 
         dieline = commands.add_parser("dieline", parents=[shared])
-        dieline.add_argument("--distance", type=float, default=20,
+        dieline.add_argument("--distance", type=nonnegative_float, default=20,
                              help="Dieline distance from original image, 20px by default")
-        dieline.add_argument("--thickness", type=float, default=4, help="Dieline thickness, 4px by default")
+        dieline.add_argument("--thickness", type=positive_float, default=4, help="Dieline thickness, 4px by default")
         dieline.add_argument("--dieline_unit", choices=["px", "mm"], default="px", help="Dieline unit, px by default")
         dieline.set_defaults(handler=self.__dieline)
 
         bleed = commands.add_parser("bleed", parents=[shared])
-        bleed.add_argument("--distance", type=float, default=20,
+        bleed.add_argument("--distance", type=nonnegative_float, default=20,
                            help="Bleed line distance from original image, 20px by default")
         bleed.add_argument("--bleed_unit", choices=["px", "mm"], default="px", help="Bleed line unit, px by default")
         bleed.set_defaults(handler=self.__bleed)

@@ -1,0 +1,17 @@
+{
+  "app.title": "EzMerch",
+
+  "unit.px": "px",
+  "unit.mm": "mm",
+
+  "output.unit": "Unit",
+  "output.resolution": "resolution",
+  "output.resolution.72": "72 dpi",
+  "output.resolution.144": "144 dpi",
+  "output.resolution.300": "300 dpi",
+  "output.resolution.350": "350 dpi",
+  "output.resolution.600": "600 dpi",
+  "output.resize": "Resize",
+  "output.width": "Width",
+  "output.height": "Height"
+}
