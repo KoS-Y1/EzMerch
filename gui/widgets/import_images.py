@@ -1,0 +1,68 @@
+#
+# Created by y1 on 2026-10-12
+#
+
+import pathlib
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFileDialog, QGroupBox, QHBoxLayout, QPushButton, QVBoxLayout
+
+from gui.i18n import i18n
+from gui.widgets.image_preview import ImagePreview
+
+
+class ImportPanel(QGroupBox):
+    images_selected = Signal(object)
+
+    def __init__(self, parent=None):
+        super().__init__(i18n.tr("import.title"), parent)
+
+        self.__layout = QVBoxLayout(self)
+        self.__layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.__images: list[pathlib.Path] = []
+
+        self.__preview = ImagePreview(self, allow_removal=True)
+        self.__load = QPushButton(i18n.tr("import.import"))
+        self.__clear = QPushButton(i18n.tr("import.clear"))
+
+        self.__layout.addWidget(self.__preview, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.__buttons_layout = QHBoxLayout()
+        self.__buttons_layout.addWidget(self.__load)
+        self.__buttons_layout.addWidget(self.__clear)
+        self.__layout.addLayout(self.__buttons_layout)
+
+        self.__load.clicked.connect(self.__select_images)
+        self.__clear.clicked.connect(self.__clear_images)
+        self.images_selected.connect(self.__preview.set_image_paths)
+        self.__preview.remove_requested.connect(self.__remove_image)
+
+    def get_image_paths(self) -> list[pathlib.Path]:
+        return self.__images.copy()
+
+    def __select_images(self) -> None:
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            i18n.tr("import.dialog.title"),
+            "",
+            i18n.tr("import.dialog.filter"),
+        )
+        if not paths:
+            return
+
+        selected = {path.resolve() for path in self.__images}
+        for filename in paths:
+            path = pathlib.Path(filename).resolve()
+            if path not in selected:
+                self.__images.append(path)
+                selected.add(path)
+        self.images_selected.emit(self.get_image_paths())
+
+    def __remove_image(self, path: pathlib.Path) -> None:
+        if path in self.__images:
+            self.__images.remove(path)
+            self.images_selected.emit(self.get_image_paths())
+
+    def __clear_images(self) -> None:
+        self.__images.clear()
+        self.images_selected.emit(self.get_image_paths())

@@ -4,8 +4,12 @@
   "unit.px": "px",
   "unit.mm": "mm",
 
+  "format.png": "png",
+  "format.psd": "psd",
+
+  "output.title": "Output Settings",
   "output.unit": "Unit",
-  "output.resolution": "resolution",
+  "output.resolution": "Resolution",
   "output.resolution.72": "72 dpi",
   "output.resolution.144": "144 dpi",
   "output.resolution.300": "300 dpi",
@@ -13,5 +17,19 @@
   "output.resolution.600": "600 dpi",
   "output.resize": "Resize",
   "output.width": "Width",
-  "output.height": "Height"
+  "output.height": "Height",
+
+  "import.title": "Import Images",
+  "import.import": "Import",
+  "import.clear": "Clear",
+  "import.dialog.title": "Select Images",
+  "import.dialog.filter": "Images (*.png)",
+
+  "export.title": "Export Images",
+  "export.export": "Export",
+  "export.format": "Export File Format",
+  "export.directory": "Export folder",
+  "export.directory.placeholder": "Export folder path",
+  "export.directory.browse": "Browse…",
+  "export.directory.dialog.title": "Select Export Folder"
 }

@@ -4,6 +4,10 @@
   "unit.px": "px",
   "unit.mm": "mm",
 
+  "format.png": "png",
+  "format.psd": "psd",
+
+  "output.title": "输出设置",
   "output.unit": "单位",
   "output.resize": "调整尺寸",
   "output.width": "宽度",
@@ -13,5 +17,19 @@
   "output.resolution.144": "144 dpi",
   "output.resolution.300": "300 dpi",
   "output.resolution.350": "350 dpi",
-  "output.resolution.600": "600 dpi"
+  "output.resolution.600": "600 dpi",
+
+  "import.title": "导入图片",
+  "import.import": "导入",
+  "import.clear": "清除",
+  "import.dialog.title": "选择图片",
+  "import.dialog.filter": "图片 (*.png)",
+
+  "export.title": "导出图片",
+  "export.export": "导出",
+  "export.format": "导出文件格式",
+  "export.directory": "导出文件夹",
+  "export.directory.placeholder": "导出文件夹路径",
+  "export.directory.browse": "浏览…",
+  "export.directory.dialog.title": "选择导出文件夹"
 }

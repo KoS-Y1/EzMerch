@@ -11,7 +11,7 @@ from core.processor import Processor
 from cli.cli_interface import CLIInterface
 from gui.i18n import i18n
 from gui.main_window import MainWindow
-from gui.presenter import StickerPresenter
+from gui.presenter import Presenter
 
 
 def main() -> None:
@@ -47,7 +47,7 @@ def main() -> None:
     app = QApplication([])
 
     window = MainWindow()
-    presenter = StickerPresenter(window, processor)
+    presenter = Presenter(window, processor)
     window.show()
 
     app.exec()
