@@ -1,0 +1,37 @@
+"""Shared display behavior for controls whose canonical values are pixels."""
+from PySide6.QtCore import QSignalBlocker
+from PySide6.QtWidgets import QAbstractSpinBox, QDoubleSpinBox
+
+from core.output_setting import UnitType
+from utils.units import mm_to_px, px_to_mm
+
+PIXEL_DECIMALS = 0
+MILLIMETER_DECIMALS = 6
+PIXEL_STEP = 1
+MILLIMETER_STEP = 0.1
+MIN_OUTPUT_DIMENSION_PX = 1
+DEFAULT_OUTPUT_DIMENSION_PX = 1
+OUTPUT_DPI_OPTIONS = (72, 144, 300, 350, 600)
+
+
+def read_pixel_value(value: float, unit: UnitType, dpi: int, min_px: int, max_px: int) -> int:
+    pixels = mm_to_px(value, dpi) if unit == UnitType.MM else round(value)
+    return max(min_px, min(max_px, pixels))
+
+
+def configure_pixel_field(
+    field: QDoubleSpinBox, pixels: int, unit: UnitType, dpi: int,
+    min_px: int, max_px: int,
+) -> None:
+    millimeters = unit == UnitType.MM
+    with QSignalBlocker(field):
+        field.setKeyboardTracking(False)
+        field.setCorrectionMode(QAbstractSpinBox.CorrectionMode.CorrectToNearestValue)
+        field.setDecimals(MILLIMETER_DECIMALS if millimeters else PIXEL_DECIMALS)
+        field.setRange(
+            px_to_mm(min_px, dpi) if millimeters else min_px,
+            px_to_mm(max_px, dpi) if millimeters else max_px,
+        )
+        field.setSingleStep(MILLIMETER_STEP if millimeters else PIXEL_STEP)
+        field.setSuffix(' mm' if millimeters else ' px')
+        field.setValue(px_to_mm(pixels, dpi) if millimeters else pixels)

@@ -21,6 +21,8 @@
 
   "import.title": "导入图片",
   "import.import": "导入",
+  "import.select": "选择图片",
+  "import.load": "加载",
   "import.clear": "清除",
   "import.dialog.title": "选择图片",
   "import.dialog.filter": "图片 (*.png)",
@@ -31,5 +33,16 @@
   "export.directory": "导出文件夹",
   "export.directory.placeholder": "导出文件夹路径",
   "export.directory.browse": "浏览…",
-  "export.directory.dialog.title": "选择导出文件夹"
+  "export.directory.dialog.title": "选择导出文件夹",
+
+
+  "dieline.title": "刀模线设置",
+
+  "resize.title": "调整尺寸",
+  "resize.enable": "启用尺寸调整",
+  "dieline.title": "刀线设置",
+  "dieline.enable": "启用刀线",
+  "dieline.thickness": "厚度",
+  "dieline.distance": "距离",
+  "dieline.unit": "单位"
 }

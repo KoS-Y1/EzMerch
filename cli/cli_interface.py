@@ -67,7 +67,7 @@ class CLIInterface:
     @staticmethod
     def __crop(args, processor: Processor):
         resize = args.size is not None
-        processor.export_all(args.dest, FileFormat(args.format), {EntityElements.BASE}, resize)
+        processor.export_individuals(args.dest, FileFormat(args.format), {EntityElements.BASE}, resize)
 
     @staticmethod
     def __dieline(args, processor: Processor):
@@ -78,7 +78,7 @@ class CLIInterface:
             processor.set_dieline_unit(UnitType(args.dieline_unit))
 
         resize = args.size is not None
-        processor.export_all(args.dest, FileFormat(args.format), {EntityElements.BASE, EntityElements.DIELINE}, resize)
+        processor.export_individuals(args.dest, FileFormat(args.format), {EntityElements.BASE, EntityElements.DIELINE}, resize)
 
     @staticmethod
     def __bleed(args, processor: Processor):
@@ -90,5 +90,5 @@ class CLIInterface:
             processor.set_bleed_unit(UnitType(args.bleed_unit))
 
         resize = args.size is not None
-        processor.export_all(args.dest, FileFormat(args.format),
+        processor.export_individuals(args.dest, FileFormat(args.format),
                              {EntityElements.BASE, EntityElements.DIELINE, EntityElements.BLEED}, resize)

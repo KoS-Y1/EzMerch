@@ -11,16 +11,23 @@ class Presenter:
         self.__view = view
         self.__processor = processor
 
-        view.get_import_panel().images_selected.connect(self.__handle_import)
+        view.get_import_panel().images_selected.connect(self.__handle_selection_changed)
+        view.get_import_panel().load_requested.connect(self.__handle_load_requested)
         view.get_export_panel().export_requested.connect(self.__handle_export)
 
-    def __handle_import(self, paths:list[pathlib.Path]) -> None:
-        if paths:
-            self.__processor.load_images(paths)
-        else:
-            self.__processor.clear_entity_list()
+    def __handle_selection_changed(self, paths:list[pathlib.Path]) -> None:
+        self.__processor.clear_entity_list()
+        self.__view.get_import_panel().set_loaded_paths([])
 
-    def __handle_export(self, destination: pathlib.Path, file_format:FileFormat, elements:set[EntityElements]) -> None:
+    def __handle_load_requested(self, paths: list[pathlib.Path]) -> None:
+        panel = self.__view.get_import_panel()
+        panel.set_loaded_paths([])
+        result = self.__processor.load_images(paths)
+        panel.set_loaded_paths(result.succeeded)
+
+    def __handle_export(self, destination: pathlib.Path | None, file_format: FileFormat) -> None:
+        if destination is None:
+            return
 
         panel = self.__view.get_output_settings()
         output = panel.get_output_data()
@@ -28,4 +35,15 @@ class Presenter:
             output.width, output.height, output.dpi, output.unit, output.color,
         )
         self.__processor.set_output_dpi(output.dpi)
-        self.__processor.export_all(destination, file_format, elements, resize=panel.is_resize_enabled())
+        dieline_panel = self.__view.get_dieline_settings()
+        dieline = dieline_panel.get_dieline_data()
+        self.__processor.set_dieline_data(
+            dieline.thickness, dieline.distance, dieline.dpi, dieline.unit,
+        )
+        elements = {EntityElements.BASE}
+        if dieline_panel.is_dieline_enabled():
+            elements.add(EntityElements.DIELINE)
+        self.__processor.export_individuals(
+            destination, file_format, elements,
+            resize=self.__view.get_resize_panel().is_resize_enabled(),
+        )

@@ -88,7 +88,7 @@ class Processor:
     def clear_entity_list(self) -> None:
         self.__entities.clear()
 
-    def load_images(self, paths: list[pathlib.Path]) -> None:
+    def load_images(self, paths: list[pathlib.Path]) -> BatchResult:
         logger.info("---------- Start loading images ----------")
 
         self.__load_batch.clear_batch()
@@ -113,7 +113,9 @@ class Processor:
             f"Failed to load:\n{failed or '(none)'}\n"
         )
 
-    def export_all(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
+        return BatchResult(self.__load_batch.succeeded.copy(), self.__load_batch.failed.copy())
+
+    def export_individuals(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
                    resize: bool = False) -> None:
         def set_base_data(e: Entity) -> None:
             return
