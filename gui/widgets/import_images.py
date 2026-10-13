@@ -79,3 +79,9 @@ class ImportPanel(QGroupBox):
     def __clear_images(self) -> None:
         self.__images.clear()
         self.images_selected.emit(self.get_image_paths())
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr('import.title'))
+        self.__select.setText(i18n.tr('import.select'))
+        self.__load.setText(i18n.tr('import.load'))
+        self.__clear.setText(i18n.tr('import.clear'))

@@ -106,3 +106,20 @@ class OutputSettingPanel(QGroupBox):
                 field, pixels, unit, dpi,
                 MIN_OUTPUT_DIMENSION_PX, MAX_OUTPUT_DIMENSION_PX,
             )
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr('output.title'))
+        for field, key in (
+            (self.__unit, 'output.unit'), (self.__resolution, 'output.resolution'),
+            (self.__width, 'output.width'), (self.__height, 'output.height'),
+        ):
+            label = self.__form_layout.labelForField(field)
+            if label is not None:
+                label.setText(i18n.tr(key))
+        with QSignalBlocker(self.__unit), QSignalBlocker(self.__resolution):
+            for index in range(self.__unit.count()):
+                unit = self.__unit.itemData(index)
+                self.__unit.setItemText(index, i18n.tr(f'unit.{unit.value}'))
+            for index in range(self.__resolution.count()):
+                dpi = self.__resolution.itemData(index)
+                self.__resolution.setItemText(index, i18n.tr(f'output.resolution.{dpi}'))

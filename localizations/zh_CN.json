@@ -48,5 +48,8 @@
   "bleed.title": "出血线设置",
   "bleed.enable": "启用出血线",
   "bleed.distance": "距离",
-  "bleed.unit": "单位"
+  "bleed.unit": "单位",
+
+  "menu.settings": "设置",
+  "menu.settings.language": "语言"
 }

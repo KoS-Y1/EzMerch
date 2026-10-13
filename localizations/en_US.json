@@ -47,6 +47,8 @@
   "bleed.title": "Bleed Line Settings",
   "bleed.enable": "Enable Bleed Line",
   "bleed.distance": "Distance",
-  "bleed.unit": "Unit"
+  "bleed.unit": "Unit",
 
+  "menu.settings": "Settings",
+  "menu.settings.language": "Language"
 }

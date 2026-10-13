@@ -28,6 +28,9 @@ class I18n:
 
         self.__language = language
 
+    def get_language(self) -> Language:
+        return self.__language
+
     def tr(self,key:str, **kwargs:Any )->str:
         text = self.__localizations.get(key, key)
 

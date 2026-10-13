@@ -12,6 +12,7 @@ from cli.cli_interface import CLIInterface
 from gui.i18n import i18n
 from gui.main_window import MainWindow
 from gui.presenter import Presenter
+from gui.app_settings import AppSettings
 
 
 def main() -> None:
@@ -45,8 +46,10 @@ def main() -> None:
     # cli.execute(processor)
 
     app = QApplication([])
+    settings = AppSettings()
+    i18n.load(settings.get_language())
 
-    window = MainWindow()
+    window = MainWindow(settings)
     presenter = Presenter(window, processor)
     window.show()
 

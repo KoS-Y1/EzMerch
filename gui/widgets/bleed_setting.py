@@ -1,6 +1,7 @@
 #
 # Created by y1 on 2026-10-13
 #
+
 from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import QGroupBox, QFormLayout, QCheckBox, QDoubleSpinBox, QComboBox
 
@@ -84,3 +85,18 @@ class BleedSetting(QGroupBox):
             label = self.__form_layout.labelForField(field)
             if label is not None:
                 label.setEnabled(field.isEnabled())
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr('bleed.title'))
+        self.__enable.setText(i18n.tr('bleed.enable'))
+        for field, key in (
+            (self.__unit, 'bleed.unit'),
+            (self.__distance, 'bleed.distance'),
+        ):
+            label = self.__form_layout.labelForField(field)
+            if label is not None:
+                label.setText(i18n.tr(key))
+        with QSignalBlocker(self.__unit):
+            for index in range(self.__unit.count()):
+                unit = self.__unit.itemData(index)
+                self.__unit.setItemText(index, i18n.tr(f'unit.{unit.value}'))

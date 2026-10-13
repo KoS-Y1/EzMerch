@@ -2,13 +2,15 @@
 # Created by y1 on 2026-10-11
 #
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFrame, QLayout, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout,
     QGridLayout, QScrollArea,
 )
 
-from gui.i18n import i18n
+from gui.i18n import i18n, Language
+from gui.app_settings import AppSettings
 from gui.widgets.export import ExportPanel
 from gui.widgets.import_images import ImportPanel
 from gui.widgets.output_setting import OutputSettingPanel
@@ -27,8 +29,9 @@ DIELINE_ROW_SPAN = 2
 OPERATION_COLUMN_SPAN = 1
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, settings: AppSettings):
         super().__init__()
+        self.__settings = settings
 
         self.setWindowTitle(i18n.tr("app.title"))
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -76,6 +79,38 @@ class MainWindow(QMainWindow):
         self.__resize.resize_toggled.connect(self.__output_settings.set_resize_enabled)
         self.__output_settings.settings_changed.connect(self.__sync_effect_context)
         self.__output_settings.set_resize_enabled(self.__resize.is_resize_enabled())
+
+        self.__settings_menu = self.menuBar().addMenu(i18n.tr("menu.settings"))
+        self.__language_menu = self.__settings_menu.addMenu(i18n.tr("menu.settings.language"))
+        self.__language_group = QActionGroup(self)
+        self.__language_group.setExclusive(True)
+        self.__language_actions = {}
+        for language, name in ((Language.EN_US, "English"), (Language.ZH_CN, "简体中文")):
+            action = QAction(name, self)
+            action.setCheckable(True)
+            action.setChecked(language == i18n.get_language())
+            action.setData(language)
+            self.__language_group.addAction(action)
+            self.__language_menu.addAction(action)
+            self.__language_actions[language] = action
+        self.__language_group.triggered.connect(self.__change_language)
+
+    def __change_language(self, action: QAction) -> None:
+        language = action.data()
+        if language == i18n.get_language():
+            return
+        position = self.__scroll_area.verticalScrollBar().value()
+        i18n.load(language)
+        self.setWindowTitle(i18n.tr("app.title"))
+        self.__settings_menu.setTitle(i18n.tr("menu.settings"))
+        self.__language_menu.setTitle(i18n.tr("menu.language"))
+        for panel in (
+            self.__import, self.__resize, self.__bleed,
+            self.__dieline, self.__output_settings, self.__export,
+        ):
+            panel.retranslate_ui()
+        QTimer.singleShot(0, lambda: self.__scroll_area.verticalScrollBar().setValue(position))
+        self.__settings.set_language(language)
 
     def __sync_effect_context(self, output) -> None:
         self.__dieline.set_output_context(output.dpi, self.__resize.is_resize_enabled())

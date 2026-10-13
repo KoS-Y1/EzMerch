@@ -98,3 +98,19 @@ class DielineSettingPanel(QGroupBox):
         label = self.__form_layout.labelForField(self.__unit)
         if label is not None:
             label.setEnabled(enabled and self.__resize_enabled)
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr('dieline.title'))
+        self.__enable.setText(i18n.tr('dieline.enable'))
+        for field, key in (
+            (self.__unit, 'dieline.unit'),
+            (self.__thickness, 'dieline.thickness'),
+            (self.__distance, 'dieline.distance'),
+        ):
+            label = self.__form_layout.labelForField(field)
+            if label is not None:
+                label.setText(i18n.tr(key))
+        with QSignalBlocker(self.__unit):
+            for index in range(self.__unit.count()):
+                unit = self.__unit.itemData(index)
+                self.__unit.setItemText(index, i18n.tr(f'unit.{unit.value}'))

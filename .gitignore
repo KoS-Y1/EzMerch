@@ -316,3 +316,5 @@ http-client.private.env.json
 
 # MacOS
 .DS_Store
+
+settings.ini

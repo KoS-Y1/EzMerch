@@ -3,7 +3,7 @@
 #
 import pathlib
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import (
     QFileDialog, QGroupBox, QVBoxLayout, QComboBox, QLabel,
     QLineEdit, QPushButton,
@@ -33,9 +33,11 @@ class ExportPanel(QGroupBox):
         self.__browse = QPushButton(i18n.tr("export.directory.browse"))
         self.__browse.clicked.connect(self.__select_directory)
 
-        self.__layout.addWidget(QLabel(i18n.tr("export.format")))
+        self.__format_label = QLabel(i18n.tr("export.format"))
+        self.__directory_label = QLabel(i18n.tr("export.directory"))
+        self.__layout.addWidget(self.__format_label)
         self.__layout.addWidget(self.__file_format)
-        self.__layout.addWidget(QLabel(i18n.tr("export.directory")))
+        self.__layout.addWidget(self.__directory_label)
         self.__layout.addWidget(self.__directory)
         self.__layout.addWidget(self.__browse)
         self.__layout.addWidget(self.__export)
@@ -43,6 +45,18 @@ class ExportPanel(QGroupBox):
     def get_export_directory(self) -> pathlib.Path | None:
         text = self.__directory.text()
         return pathlib.Path(text) if text.strip() else None
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr("export.title"))
+        self.__format_label.setText(i18n.tr("export.format"))
+        self.__directory_label.setText(i18n.tr("export.directory"))
+        self.__directory.setPlaceholderText(i18n.tr("export.directory.placeholder"))
+        self.__browse.setText(i18n.tr("export.directory.browse"))
+        self.__export.setText(i18n.tr("export.export"))
+        with QSignalBlocker(self.__file_format):
+            for index in range(self.__file_format.count()):
+                file_format = self.__file_format.itemData(index)
+                self.__file_format.setItemText(index, i18n.tr(f"format.{file_format.value}"))
 
     def __select_directory(self) -> None:
         directory = self.get_export_directory()

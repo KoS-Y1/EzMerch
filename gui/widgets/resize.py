@@ -16,3 +16,7 @@ class ResizePanel(QGroupBox):
 
     def is_resize_enabled(self) -> bool:
         return self.__resize.isChecked()
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(i18n.tr('resize.title'))
+        self.__resize.setText(i18n.tr('resize.enable'))
