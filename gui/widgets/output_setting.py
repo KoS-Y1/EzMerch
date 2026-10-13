@@ -38,10 +38,10 @@ class OutputSettingPanel(QGroupBox):
 
         self.__width = QDoubleSpinBox()
         self.__height = QDoubleSpinBox()
-        self.__form_layout.addRow(i18n.tr("output.width"), self.__width)
-        self.__form_layout.addRow(i18n.tr("output.height"), self.__height)
         self.__form_layout.addRow(i18n.tr("output.unit"), self.__unit)
         self.__form_layout.addRow(i18n.tr("output.resolution"), self.__resolution)
+        self.__form_layout.addRow(i18n.tr("output.width"), self.__width)
+        self.__form_layout.addRow(i18n.tr("output.height"), self.__height)
 
         self.__refresh_dimensions()
         self.__width.valueChanged.connect(self.__width_changed)

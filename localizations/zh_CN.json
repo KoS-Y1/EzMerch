@@ -36,13 +36,17 @@
   "export.directory.dialog.title": "选择导出文件夹",
 
 
-  "dieline.title": "刀模线设置",
-
   "resize.title": "调整尺寸",
   "resize.enable": "启用尺寸调整",
+
   "dieline.title": "刀线设置",
   "dieline.enable": "启用刀线",
   "dieline.thickness": "厚度",
   "dieline.distance": "距离",
-  "dieline.unit": "单位"
+  "dieline.unit": "单位",
+
+  "bleed.title": "出血线设置",
+  "bleed.enable": "启用出血线",
+  "bleed.distance": "距离",
+  "bleed.unit": "单位"
 }

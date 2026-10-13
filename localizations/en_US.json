@@ -31,17 +31,22 @@
   "export.export": "Export",
   "export.format": "Export File Format",
   "export.directory": "Export folder",
-  "export.directory.placeholder": "Export folder path",
+  "export.directory.placeholder": "Export Folder Path",
   "export.directory.browse": "Browse…",
   "export.directory.dialog.title": "Select Export Folder",
 
-  "dieline.title": "Dieline Settings",
-
   "resize.title": "Resize",
   "resize.enable": "Enable resizing",
+
   "dieline.title": "Dieline Settings",
-  "dieline.enable": "Enable dieline",
+  "dieline.enable": "Enable Dieline",
   "dieline.thickness": "Thickness",
   "dieline.distance": "Distance",
-  "dieline.unit": "Unit"
+  "dieline.unit": "Unit",
+
+  "bleed.title": "Bleed Line Settings",
+  "bleed.enable": "Enable Bleed Line",
+  "bleed.distance": "Distance",
+  "bleed.unit": "Unit"
+
 }

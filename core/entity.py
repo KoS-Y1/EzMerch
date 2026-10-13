@@ -97,7 +97,7 @@ class BleedData:
         return get_distance_selector[self.unit]()
 
     def is_valid(self):
-        return self.distance > 0
+        return self.distance >= 0 and self.dpi > 0
 
 
 class Entity:

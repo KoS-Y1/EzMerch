@@ -43,6 +43,11 @@ class Presenter:
         elements = {EntityElements.BASE}
         if dieline_panel.is_dieline_enabled():
             elements.add(EntityElements.DIELINE)
+        bleed_panel = self.__view.get_bleed_settings()
+        bleed = bleed_panel.get_bleed_data()
+        self.__processor.set_bleed_data(bleed.distance, bleed.dpi, bleed.unit)
+        if bleed_panel.is_bleed_enabled():
+            elements.add(EntityElements.BLEED)
         self.__processor.export_individuals(
             destination, file_format, elements,
             resize=self.__view.get_resize_panel().is_resize_enabled(),

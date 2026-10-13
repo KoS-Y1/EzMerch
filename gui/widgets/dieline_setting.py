@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox
 
 from core.entity import DielineData
@@ -19,6 +19,7 @@ class DielineSettingPanel(QGroupBox):
     def __init__(self, parent=None):
         super().__init__(i18n.tr('dieline.title'), parent)
         self.__form_layout = QFormLayout(self)
+        self.__form_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.__thickness_px = DEFAULT_DIELINE_THICKNESS_PX
         self.__distance_px = DEFAULT_DIELINE_DISTANCE_PX
         self.__preferred_unit = UnitType.PX
@@ -30,10 +31,12 @@ class DielineSettingPanel(QGroupBox):
         self.__unit = QComboBox()
         for unit in UnitType:
             self.__unit.addItem(i18n.tr(f'unit.{unit.value}'), unit)
+
         self.__form_layout.addRow(self.__enable)
+        self.__form_layout.addRow(i18n.tr('dieline.unit'), self.__unit)
         self.__form_layout.addRow(i18n.tr('dieline.thickness'), self.__thickness)
         self.__form_layout.addRow(i18n.tr('dieline.distance'), self.__distance)
-        self.__form_layout.addRow(i18n.tr('dieline.unit'), self.__unit)
+
         self.__refresh()
         self.__enable.toggled.connect(self.__changed)
         self.__thickness.valueChanged.connect(self.__thickness_changed)
