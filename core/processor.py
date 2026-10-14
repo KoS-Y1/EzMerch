@@ -9,8 +9,10 @@ from dataclasses import dataclass, replace
 import cv2
 
 from .document import Document
-from .entity import Entity, EntityElements, DielineData, BleedData
-from .output_setting import DEFAULT_DPI, OutputData, FileFormat, UnitType, ColorFormat
+from .entity import Entity, EntityElements
+from .output_setting import DEFAULT_DPI, OutputData, FileFormat, UnitType, ColorFormat, DielineData, BleedData, \
+    KissCutData
+from .kiss_cut import generate_kiss_cut
 
 from utils.file_io import export
 
@@ -43,10 +45,12 @@ class Processor:
         self.__dieline_data = DielineData()
         self.__bleed_data = BleedData()
 
+        self.__kiss_cut_data = KissCutData()
+
         self.__entities: list[Entity] = []
 
     def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
-                        unit: UnitType = UnitType.PX, color:ColorFormat = ColorFormat.RGB) -> None:
+                        unit: UnitType = UnitType.PX, color: ColorFormat = ColorFormat.RGB) -> None:
         self.__output_data = OutputData(width=width, height=height, dpi=dpi, unit=unit, color=color)
 
     def set_output_size(self, width: float, height: float) -> None:
@@ -56,11 +60,12 @@ class Processor:
         self.__output_data = replace(self.__output_data, dpi=dpi)
         self.__dieline_data = replace(self.__dieline_data, dpi=dpi)
         self.__bleed_data = replace(self.__bleed_data, dpi=dpi)
+        self.__kiss_cut_data = replace(self.__kiss_cut_data, dpi=dpi)
 
     def set_output_unit(self, unit: UnitType) -> None:
         self.__output_data = replace(self.__output_data, unit=unit)
 
-    def set_output_color(self, color:ColorFormat) -> None:
+    def set_output_color(self, color: ColorFormat) -> None:
         self.__output_data = replace(self.__output_data, color=color)
 
     def set_dieline_data(self, thickness: float, distance: float, dpi: int = DEFAULT_DPI,
@@ -84,6 +89,23 @@ class Processor:
 
     def set_bleed_unit(self, unit: UnitType) -> None:
         self.__bleed_data = replace(self.__bleed_data, unit=unit)
+
+    def set_kiss_cut_data(self, margin: float, spacing: float, dpi: int = DEFAULT_DPI,
+                          spacing_unit: UnitType = UnitType.MM, margin_unit: UnitType = UnitType.MM) -> None:
+        self.__kiss_cut_data = KissCutData(margin=margin, spacing=spacing, dpi=dpi, margin_unit=margin_unit,
+                                           spacing_unit=spacing_unit)
+
+    def set_kiss_cut_margin(self, margin: float) -> None:
+        self.__kiss_cut_data = replace(self.__kiss_cut_data, margin=margin)
+
+    def set_kiss_cut_margin_unit(self, margin_unit) -> None:
+        self.__kiss_cut_data = replace(self.__kiss_cut_data, margin_unit=margin_unit)
+
+    def set_kiss_cut_spacing(self, spacing: float) -> None:
+        self.__kiss_cut_data = replace(self.__kiss_cut_data, spacing=spacing)
+
+    def set_kiss_cut_spacing_unit(self, spacing_unit: UnitType) -> None:
+        self.__kiss_cut_data = replace(self.__kiss_cut_data, spacing_unit=spacing_unit)
 
     def clear_entity_list(self) -> None:
         self.__entities.clear()
@@ -116,7 +138,7 @@ class Processor:
         return BatchResult(self.__load_batch.succeeded.copy(), self.__load_batch.failed.copy())
 
     def export_individuals(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
-                   resize: bool = False) -> BatchResult:
+                           resize: bool = False) -> BatchResult:
         def set_base_data(e: Entity) -> None:
             return
 
@@ -176,3 +198,43 @@ class Processor:
             f"Failed to export:\n{failed or '(none)'}\n"
         )
         return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
+
+    def export_kiss_cut(self, dst_path: pathlib.Path, file_format: FileFormat,
+                        elements: set[EntityElements]) -> BatchResult:
+        element_strs = ",".join(sorted(e.value for e in elements))
+        logger.info(f"---------- Start exporting kiss cut with stickers with {element_strs}")
+
+        self.__export_batch.clear_batch()
+
+        doc = Document(output_data=self.__output_data)
+
+        try:
+            stickers = generate_kiss_cut(self.__entities, elements, self.__output_data, self.__kiss_cut_data,
+                                         self.__dieline_data, self.__bleed_data)
+        except (OSError, cv2.error, ValueError) as exc:
+            logger.warning(f"Failed to generate kiss cut {dst_path}, {exc}")
+            self.__export_batch.failed.append(dst_path)
+            return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
+
+
+        for sticker, sticker_name in stickers:
+            doc.add_folder(sticker, sticker_name)
+
+        try:
+            export(dst_path, doc, file_format)
+        except (OSError, cv2.error, ValueError) as exc:
+            logger.warning(f"Failed to export {dst_path}, {exc}")
+            self.__export_batch.failed.append(dst_path)
+            return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
+
+        self.__export_batch.succeeded.append(dst_path)
+
+        succeeded = "\n".join(str(path.resolve()) for path in self.__export_batch.succeeded)
+        failed = "\n".join(str(path.resolve()) for path in self.__export_batch.failed)
+        logger.info(
+            f"Finish exporting:\n"
+            f"Successfully exported:\n{succeeded or '(none)'}\n"
+            f"Failed to export:\n{failed or '(none)'}\n"
+        )
+        return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
+

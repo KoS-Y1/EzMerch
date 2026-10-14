@@ -4,7 +4,7 @@
 
 import pathlib
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from enum import Enum
 from typing import Callable
 
@@ -12,10 +12,9 @@ import numpy as np
 
 import cv2
 
-from .output_setting import DEFAULT_DPI, OutputData, UnitType
+from .output_setting import BleedData, DielineData, OutputData
 
 from utils.file_io import load_image
-from utils.units import mm_to_px
 
 logger = logging.getLogger(__name__)
 
@@ -24,80 +23,6 @@ class EntityElements(Enum):
     BASE = "base"
     DIELINE = "dieline"
     BLEED = "bleed"
-
-
-@dataclass
-class DielineData:
-    dpi: int = DEFAULT_DPI
-    unit: UnitType = UnitType.PX
-    thickness: float = 0.0
-    distance: float = 0.0
-
-    def clear(self):
-        self.dpi = DEFAULT_DPI
-        self.unit = UnitType.PX
-        self.thickness = 0.0
-        self.distance = 0.0
-
-    def get_thickness_px(self) -> int:
-        def unit_px() -> int:
-            return round(self.thickness)
-
-        def unit_mm() -> int:
-            return mm_to_px(self.thickness, self.dpi)
-
-        get_thickness_selector = {
-            UnitType.PX: unit_px,
-            UnitType.MM: unit_mm,
-        }
-
-        return get_thickness_selector[self.unit]()
-
-    def get_distance_px(self) -> int:
-        def unit_px() -> int:
-            return round(self.distance)
-
-        def unit_mm() -> int:
-            return mm_to_px(self.distance, self.dpi)
-
-        get_distance_selector = {
-            UnitType.PX: unit_px,
-            UnitType.MM: unit_mm,
-        }
-
-        return get_distance_selector[self.unit]()
-
-    def is_valid(self):
-        return self.distance >= 0 and self.thickness > 0 and self.dpi > 0
-
-
-@dataclass
-class BleedData:
-    dpi: int = DEFAULT_DPI
-    unit: UnitType = UnitType.PX
-    distance: float = 0.0
-
-    def clear(self):
-        self.dpi = DEFAULT_DPI
-        self.unit = UnitType.PX
-        self.distance = 0.0
-
-    def get_distance_px(self) -> int:
-        def unit_px() -> int:
-            return round(self.distance)
-
-        def unit_mm() -> int:
-            return mm_to_px(self.distance, self.dpi)
-
-        get_distance_selector = {
-            UnitType.PX: unit_px,
-            UnitType.MM: unit_mm,
-        }
-
-        return get_distance_selector[self.unit]()
-
-    def is_valid(self):
-        return self.distance >= 0 and self.dpi > 0
 
 
 class Entity:

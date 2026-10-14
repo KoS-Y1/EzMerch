@@ -5,8 +5,7 @@
 from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import QGroupBox, QFormLayout, QCheckBox, QDoubleSpinBox, QComboBox
 
-from core.entity import BleedData
-from core.output_setting import MAX_OUTPUT_DIMENSION_PX, UnitType, DEFAULT_DPI
+from core.output_setting import MAX_OUTPUT_DIMENSION_PX, UnitType, DEFAULT_DPI, BleedData
 from gui.i18n import i18n
 from gui.widgets.settings_panel import SettingsPanel
 from gui.unit_controls import UnitFieldRow, configure_pixel_field, read_pixel_value

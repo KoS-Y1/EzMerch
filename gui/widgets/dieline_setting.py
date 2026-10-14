@@ -1,8 +1,7 @@
 from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout
 
-from core.entity import DielineData
-from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, UnitType
+from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, UnitType, DielineData
 from gui.i18n import i18n
 from gui.widgets.settings_panel import SettingsPanel
 from gui.unit_controls import UnitFieldRow, configure_pixel_field, read_pixel_value
