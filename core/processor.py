@@ -116,7 +116,7 @@ class Processor:
         return BatchResult(self.__load_batch.succeeded.copy(), self.__load_batch.failed.copy())
 
     def export_individuals(self, dst_path: pathlib.Path, file_format: FileFormat, elements: set[EntityElements],
-                   resize: bool = False) -> None:
+                   resize: bool = False) -> BatchResult:
         def set_base_data(e: Entity) -> None:
             return
 
@@ -175,3 +175,4 @@ class Processor:
             f"Successfully exported:\n{succeeded or '(none)'}\n"
             f"Failed to export:\n{failed or '(none)'}\n"
         )
+        return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())

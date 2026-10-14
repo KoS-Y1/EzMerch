@@ -1,9 +1,10 @@
 """Shared display behavior for controls whose canonical values are pixels."""
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QAbstractSpinBox, QDoubleSpinBox
+from PySide6.QtWidgets import QAbstractSpinBox, QDoubleSpinBox, QHBoxLayout, QLabel, QWidget
 
 from core.output_setting import UnitType
 from utils.units import mm_to_px, px_to_mm
+from gui.i18n import i18n
 
 PIXEL_DECIMALS = 0
 MILLIMETER_DECIMALS = 6
@@ -12,6 +13,30 @@ MILLIMETER_STEP = 0.1
 MIN_OUTPUT_DIMENSION_PX = 1
 DEFAULT_OUTPUT_DIMENSION_PX = 1
 OUTPUT_DPI_OPTIONS = (72, 144, 300, 350, 600)
+UNIT_ROW_MARGIN = 0
+UNIT_LABEL_SPACING = 4
+
+
+class UnitFieldRow(QWidget):
+    """Keep the unit visible without making it part of editable numeric text."""
+
+    def __init__(self, field: QDoubleSpinBox, parent=None):
+        super().__init__(parent)
+        self.__layout = QHBoxLayout(self)
+        self.__layout.setContentsMargins(
+            UNIT_ROW_MARGIN, UNIT_ROW_MARGIN, UNIT_ROW_MARGIN, UNIT_ROW_MARGIN,
+        )
+        self.__layout.setSpacing(UNIT_LABEL_SPACING)
+        self.__unit_label = QLabel()
+        self.__layout.addWidget(field)
+        self.__layout.addWidget(self.__unit_label)
+        self.set_unit(UnitType.PX)
+
+    def set_unit(self, unit: UnitType) -> None:
+        self.set_unit_text(i18n.tr(f"unit.{unit.value}"))
+
+    def set_unit_text(self, text: str) -> None:
+        self.__unit_label.setText(text)
 
 
 def read_pixel_value(value: float, unit: UnitType, dpi: int, min_px: int, max_px: int) -> int:
@@ -33,5 +58,5 @@ def configure_pixel_field(
             px_to_mm(max_px, dpi) if millimeters else max_px,
         )
         field.setSingleStep(MILLIMETER_STEP if millimeters else PIXEL_STEP)
-        field.setSuffix(' mm' if millimeters else ' px')
+        field.setSuffix('')
         field.setValue(px_to_mm(pixels, dpi) if millimeters else pixels)

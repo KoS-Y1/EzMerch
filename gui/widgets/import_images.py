@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFileDialog, QGroupBox, QHBoxLayout, QPushButton, QVBoxLayout
 
 from gui.i18n import i18n
+from gui.ui_translations import UiTranslations
 from gui.widgets.image_preview import ImagePreview
 
 
@@ -40,6 +41,14 @@ class ImportPanel(QGroupBox):
         self.__clear.clicked.connect(self.__clear_images)
         self.images_selected.connect(self.__preview.set_image_paths)
         self.__preview.remove_requested.connect(self.__remove_image)
+        self.__translations = UiTranslations()
+        self.__translations.bind_text(self.setTitle, 'import.title')
+        for button, key in (
+            (self.__select, 'import.select'), (self.__clear, 'import.clear'),
+            (self.__load, 'import.load'),
+        ):
+            self.__translations.bind_text(button.setText, key)
+            self.__translations.bind_text(button.setToolTip, key + '.tooltip')
 
     def get_image_paths(self) -> list[pathlib.Path]:
         return self.__images.copy()
@@ -81,7 +90,4 @@ class ImportPanel(QGroupBox):
         self.images_selected.emit(self.get_image_paths())
 
     def retranslate_ui(self) -> None:
-        self.setTitle(i18n.tr('import.title'))
-        self.__select.setText(i18n.tr('import.select'))
-        self.__load.setText(i18n.tr('import.load'))
-        self.__clear.setText(i18n.tr('import.clear'))
+        self.__translations.retranslate()

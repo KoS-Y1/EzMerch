@@ -11,6 +11,9 @@ from PySide6.QtWidgets import (
 
 from gui.i18n import i18n, Language
 from gui.app_settings import AppSettings
+from gui.ui_translations import UiTranslations
+from core.processor import BatchResult
+from gui.dialogs.batch_result import BatchOperation, BatchResultDialog
 from gui.widgets.export import ExportPanel
 from gui.widgets.import_images import ImportPanel
 from gui.widgets.output_setting import OutputSettingPanel
@@ -94,6 +97,10 @@ class MainWindow(QMainWindow):
             self.__language_menu.addAction(action)
             self.__language_actions[language] = action
         self.__language_group.triggered.connect(self.__change_language)
+        self.__translations = UiTranslations()
+        self.__translations.bind_text(self.setWindowTitle, 'app.title')
+        self.__translations.bind_text(self.__settings_menu.setTitle, 'menu.settings')
+        self.__translations.bind_text(self.__language_menu.setTitle, 'menu.settings.language')
 
     def __change_language(self, action: QAction) -> None:
         language = action.data()
@@ -101,16 +108,21 @@ class MainWindow(QMainWindow):
             return
         position = self.__scroll_area.verticalScrollBar().value()
         i18n.load(language)
-        self.setWindowTitle(i18n.tr("app.title"))
-        self.__settings_menu.setTitle(i18n.tr("menu.settings"))
-        self.__language_menu.setTitle(i18n.tr("menu.language"))
+        self.retranslate_ui()
+        QTimer.singleShot(0, lambda: self.__scroll_area.verticalScrollBar().setValue(position))
+        self.__settings.set_language(language)
+
+    def retranslate_ui(self) -> None:
+        self.__translations.retranslate()
         for panel in (
             self.__import, self.__resize, self.__bleed,
             self.__dieline, self.__output_settings, self.__export,
         ):
             panel.retranslate_ui()
-        QTimer.singleShot(0, lambda: self.__scroll_area.verticalScrollBar().setValue(position))
-        self.__settings.set_language(language)
+
+    def show_batch_result(self, operation: BatchOperation, result: BatchResult) -> None:
+        dialog = BatchResultDialog(operation, result, self)
+        dialog.exec()
 
     def __sync_effect_context(self, output) -> None:
         self.__dieline.set_output_context(output.dpi, self.__resize.is_resize_enabled())

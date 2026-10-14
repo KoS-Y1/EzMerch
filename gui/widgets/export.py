@@ -3,7 +3,7 @@
 #
 import pathlib
 
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QFileDialog, QGroupBox, QVBoxLayout, QComboBox, QLabel,
     QLineEdit, QPushButton,
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from core.output_setting import FileFormat
 from gui.i18n import i18n
+from gui.ui_translations import UiTranslations
 
 
 class ExportPanel(QGroupBox):
@@ -41,22 +42,24 @@ class ExportPanel(QGroupBox):
         self.__layout.addWidget(self.__directory)
         self.__layout.addWidget(self.__browse)
         self.__layout.addWidget(self.__export)
+        self.__translations = UiTranslations()
+        for setter, key in (
+            (self.setTitle, 'export.title'),
+            (self.__format_label.setText, 'export.format'),
+            (self.__directory_label.setText, 'export.directory'),
+            (self.__directory.setPlaceholderText, 'export.directory.placeholder'),
+            (self.__browse.setText, 'export.directory.browse'),
+            (self.__export.setText, 'export.export'),
+        ):
+            self.__translations.bind_text(setter, key)
+        self.__translations.bind_combo(self.__file_format, lambda fmt: f'format.{fmt.value}')
 
     def get_export_directory(self) -> pathlib.Path | None:
         text = self.__directory.text()
         return pathlib.Path(text) if text.strip() else None
 
     def retranslate_ui(self) -> None:
-        self.setTitle(i18n.tr("export.title"))
-        self.__format_label.setText(i18n.tr("export.format"))
-        self.__directory_label.setText(i18n.tr("export.directory"))
-        self.__directory.setPlaceholderText(i18n.tr("export.directory.placeholder"))
-        self.__browse.setText(i18n.tr("export.directory.browse"))
-        self.__export.setText(i18n.tr("export.export"))
-        with QSignalBlocker(self.__file_format):
-            for index in range(self.__file_format.count()):
-                file_format = self.__file_format.itemData(index)
-                self.__file_format.setItemText(index, i18n.tr(f"format.{file_format.value}"))
+        self.__translations.retranslate()
 
     def __select_directory(self) -> None:
         directory = self.get_export_directory()

@@ -26,6 +26,9 @@
   "import.clear": "清除",
   "import.dialog.title": "选择图片",
   "import.dialog.filter": "图片 (*.png)",
+  "import.select.tooltip": "选择要加载的图片。",
+  "import.clear.tooltip": "清除已选图片。",
+  "import.load.tooltip": "加载图片以进行处理。",
 
   "export.title": "导出图片",
   "export.export": "导出",
@@ -38,6 +41,7 @@
 
   "resize.title": "调整尺寸",
   "resize.enable": "启用尺寸调整",
+  "resize.tooltip": "保持图片比例，将每张图片缩放至指定大小。",
 
   "dieline.title": "刀线设置",
   "dieline.enable": "启用刀线",
@@ -51,5 +55,23 @@
   "bleed.unit": "单位",
 
   "menu.settings": "设置",
-  "menu.settings.language": "语言"
+  "menu.settings.language": "语言",
+
+  "batch.load.title": "加载结果",
+  "batch.export.title": "导出结果",
+  "batch.summary": "成功：{succeeded}\n失败：{failed}",
+  "batch.empty": "未处理任何图片。",
+  "batch.succeeded": "成功",
+  "batch.failed": "失败",
+  "batch.none": "（无）",
+  "batch.ok": "确定",
+
+  "kiss.title": "半切设置",
+  "kiss.margin.unit": "边距单位",
+  "kiss.margin": "画布边距",
+  "kiss.spacing.unit": "间距单位",
+  "kiss.spacing": "贴纸间距",
+  "kiss.margin.tooltip": "从画布各边缘向内预留的距离。",
+  "kiss.spacing.tooltip": "相邻贴纸之间的间隔。"
+
 }

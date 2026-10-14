@@ -3,21 +3,22 @@
 #
 
 from PySide6.QtCore import QSignalBlocker, Signal
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFormLayout
 
 from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, OutputData, UnitType
 
 from gui.i18n import i18n
+from gui.widgets.settings_panel import SettingsPanel
 from gui.unit_controls import (
     DEFAULT_OUTPUT_DIMENSION_PX, MIN_OUTPUT_DIMENSION_PX, OUTPUT_DPI_OPTIONS,
-    configure_pixel_field, read_pixel_value,
+    UnitFieldRow, configure_pixel_field, read_pixel_value,
 )
 
-class OutputSettingPanel(QGroupBox):
+class OutputSettingPanel(SettingsPanel):
     settings_changed = Signal(object)
 
     def __init__(self, parent=None):
-        super().__init__(i18n.tr("output.title"), parent)
+        super().__init__("output.title", parent)
 
         self.__form_layout = QFormLayout(self)
 
@@ -38,12 +39,17 @@ class OutputSettingPanel(QGroupBox):
 
         self.__width = QDoubleSpinBox()
         self.__height = QDoubleSpinBox()
+        self.__field_rows = {
+            self.__width: UnitFieldRow(self.__width),
+            self.__height: UnitFieldRow(self.__height),
+        }
         self.__form_layout.addRow(i18n.tr("output.unit"), self.__unit)
         self.__form_layout.addRow(i18n.tr("output.resolution"), self.__resolution)
-        self.__form_layout.addRow(i18n.tr("output.width"), self.__width)
-        self.__form_layout.addRow(i18n.tr("output.height"), self.__height)
+        self.__form_layout.addRow(i18n.tr("output.width"), self.__field_rows[self.__width])
+        self.__form_layout.addRow(i18n.tr("output.height"), self.__field_rows[self.__height])
 
-        self.__refresh_dimensions()
+        self.__bind_translations()
+        self._refresh()
         self.__width.valueChanged.connect(self.__width_changed)
         self.__height.valueChanged.connect(self.__height_changed)
         self.__unit.currentIndexChanged.connect(self.__preferences_changed)
@@ -51,7 +57,7 @@ class OutputSettingPanel(QGroupBox):
 
     def set_resize_enabled(self, enabled: bool) -> None:
         self.__resize_enabled = enabled
-        self.__display_changed()
+        self._changed()
 
     def get_output_data(self) -> OutputData:
         return OutputData(
@@ -68,23 +74,23 @@ class OutputSettingPanel(QGroupBox):
 
     def __width_changed(self, value: float) -> None:
         self.__width_px = self.__to_pixels(value)
-        self.__display_changed()
+        self._changed()
 
     def __height_changed(self, value: float) -> None:
         self.__height_px = self.__to_pixels(value)
-        self.__display_changed()
+        self._changed()
 
-    def __display_changed(self, *_args) -> None:
-        self.__refresh_dimensions()
+    def _changed(self) -> None:
+        self._refresh()
         self.settings_changed.emit(self.get_output_data())
 
     def __preferences_changed(self, *_args) -> None:
         if self.__resize_enabled:
             self.__resize_unit = self.__unit.currentData()
             self.__resize_dpi = self.__resolution.currentData()
-        self.__display_changed()
+        self._changed()
 
-    def __refresh_dimensions(self) -> None:
+    def _refresh(self) -> None:
         enabled = self.__resize_enabled
         unit = self.__resize_unit if enabled else UnitType.PX
         dpi = self.__resize_dpi if enabled else DEFAULT_DPI
@@ -94,8 +100,8 @@ class OutputSettingPanel(QGroupBox):
 
             self.__resolution.setCurrentIndex(self.__resolution.findData(dpi))
         for field in (self.__width, self.__height, self.__unit, self.__resolution):
-            field.setEnabled(enabled)
-            label = self.__form_layout.labelForField(field)
+            (self.__field_rows[field] if isinstance(field, QDoubleSpinBox) else field).setEnabled(enabled)
+            label = self.__form_layout.labelForField((self.__field_rows[field] if isinstance(field, QDoubleSpinBox) else field))
             if label is not None:
                 label.setEnabled(enabled)
 
@@ -106,20 +112,20 @@ class OutputSettingPanel(QGroupBox):
                 field, pixels, unit, dpi,
                 MIN_OUTPUT_DIMENSION_PX, MAX_OUTPUT_DIMENSION_PX,
             )
+            self.__field_rows[field].set_unit(unit)
 
-    def retranslate_ui(self) -> None:
-        self.setTitle(i18n.tr('output.title'))
-        for field, key in (
-            (self.__unit, 'output.unit'), (self.__resolution, 'output.resolution'),
-            (self.__width, 'output.width'), (self.__height, 'output.height'),
-        ):
-            label = self.__form_layout.labelForField(field)
-            if label is not None:
-                label.setText(i18n.tr(key))
-        with QSignalBlocker(self.__unit), QSignalBlocker(self.__resolution):
-            for index in range(self.__unit.count()):
-                unit = self.__unit.itemData(index)
-                self.__unit.setItemText(index, i18n.tr(f'unit.{unit.value}'))
-            for index in range(self.__resolution.count()):
-                dpi = self.__resolution.itemData(index)
-                self.__resolution.setItemText(index, i18n.tr(f'output.resolution.{dpi}'))
+    def __bind_translations(self) -> None:
+        self._translations.bind_form_label(self.__form_layout, self.__unit, 'output.unit')
+        self._translations.bind_combo(self.__unit, lambda unit: f'unit.{unit.value}')
+        self._translations.bind_form_label(self.__form_layout, self.__resolution, 'output.resolution')
+        self._translations.bind_combo(self.__resolution, lambda dpi: f'output.resolution.{dpi}')
+        self._translations.bind_form_label(self.__form_layout, self.__field_rows[self.__width], 'output.width')
+        self._translations.bind_text(
+            self.__field_rows[self.__width].set_unit_text,
+            lambda: f'unit.{self.__unit.currentData().value}',
+        )
+        self._translations.bind_form_label(self.__form_layout, self.__field_rows[self.__height], 'output.height')
+        self._translations.bind_text(
+            self.__field_rows[self.__height].set_unit_text,
+            lambda: f'unit.{self.__unit.currentData().value}',
+        )

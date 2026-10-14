@@ -4,6 +4,7 @@ from core.entity import EntityElements
 from core.output_setting import FileFormat
 from core.processor import Processor
 from gui.main_window import MainWindow
+from gui.dialogs.batch_result import BatchOperation
 
 
 class Presenter:
@@ -24,6 +25,7 @@ class Presenter:
         panel.set_loaded_paths([])
         result = self.__processor.load_images(paths)
         panel.set_loaded_paths(result.succeeded)
+        self.__view.show_batch_result(BatchOperation.LOAD, result)
 
     def __handle_export(self, destination: pathlib.Path | None, file_format: FileFormat) -> None:
         if destination is None:
@@ -48,7 +50,8 @@ class Presenter:
         self.__processor.set_bleed_data(bleed.distance, bleed.dpi, bleed.unit)
         if bleed_panel.is_bleed_enabled():
             elements.add(EntityElements.BLEED)
-        self.__processor.export_individuals(
+        result = self.__processor.export_individuals(
             destination, file_format, elements,
             resize=self.__view.get_resize_panel().is_resize_enabled(),
         )
+        self.__view.show_batch_result(BatchOperation.EXPORT, result)

@@ -26,6 +26,9 @@
   "import.clear": "Clear",
   "import.dialog.title": "Select Images",
   "import.dialog.filter": "Images (*.png)",
+  "import.select.tooltip": "Select images to load.",
+  "import.clear.tooltip": "Clear selected images.",
+  "import.load.tooltip": "Load images for processing.",
 
   "export.title": "Export Images",
   "export.export": "Export",
@@ -37,6 +40,7 @@
 
   "resize.title": "Resize",
   "resize.enable": "Enable resizing",
+  "resize.tooltip": "Fits each image within the requested output canvas while preserving aspect ratio.",
 
   "dieline.title": "Dieline Settings",
   "dieline.enable": "Enable Dieline",
@@ -50,5 +54,23 @@
   "bleed.unit": "Unit",
 
   "menu.settings": "Settings",
-  "menu.settings.language": "Language"
+  "menu.settings.language": "Language",
+
+  "batch.load.title": "Load Results",
+  "batch.export.title": "Export Results",
+  "batch.summary": "Succeeded: {succeeded}\nFailed: {failed}",
+  "batch.empty": "No images were processed.",
+  "batch.succeeded": "Succeeded",
+  "batch.failed": "Failed",
+  "batch.none": "(none)",
+  "batch.ok": "OK",
+
+  "kiss.title": "Kiss Cut Settings",
+  "kiss.margin.unit": "Margin unit",
+  "kiss.margin": "Canvas margin",
+  "kiss.spacing.unit": "Spacing unit",
+  "kiss.spacing": "Sticker spacing",
+  "kiss.margin.tooltip": "Inward distance from each canvas edge to the sticker layout.",
+  "kiss.spacing.tooltip": "Gap between neighboring stickers."
+
 }
