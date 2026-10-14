@@ -5,7 +5,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QSignalBlocker
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import QComboBox, QFormLayout, QLabel, QWidget
 
 from gui.i18n import i18n
@@ -32,6 +32,8 @@ class UiTranslations:
         update()
 
     def bind_form_label(self, layout: QFormLayout, field: QWidget, key: str) -> None:
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         label = layout.labelForField(field)
         if not isinstance(label, QLabel):
             raise TypeError('Translation binding requires a QLabel form label')

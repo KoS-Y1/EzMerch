@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFrame, QLayout, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout,
-    QScrollArea, QTabBar, QSizePolicy,
+    QScrollArea, QTabBar, QSizePolicy, QMessageBox,
 )
 
 from gui.i18n import i18n, Language
@@ -14,6 +14,7 @@ from gui.app_settings import AppSettings
 from gui.ui_translations import UiTranslations
 from core.processor import BatchResult
 from gui.dialogs.batch_result import BatchOperation, BatchResultDialog
+from gui.dialogs.processing import ProcessingDialog
 from gui.widgets.export import ExportPanel
 from gui.widgets.import_images import ImportPanel
 from gui.widgets.output_setting import OutputSettingPanel
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
     def __init__(self, settings: AppSettings):
         super().__init__()
         self.__settings = settings
+        self.__processing_dialog = None
 
         self.setWindowTitle(i18n.tr("app.title"))
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -133,6 +135,31 @@ class MainWindow(QMainWindow):
         dialog = BatchResultDialog(operation, result, self)
         dialog.exec()
 
+    def set_processing(self, operation: BatchOperation | None) -> None:
+        if operation is not None:
+            self.centralWidget().setEnabled(False)
+            self.menuBar().setEnabled(False)
+            self.__processing_dialog = ProcessingDialog(operation, self)
+            self.__processing_dialog.show()
+        elif self.__processing_dialog is not None:
+            self.__processing_dialog.done(0)
+            self.__processing_dialog.deleteLater()
+            self.__processing_dialog = None
+            self.centralWidget().setEnabled(True)
+            self.menuBar().setEnabled(True)
+
+    def show_processing_error(self, message: str) -> None:
+        QMessageBox.critical(
+            self, i18n.tr('processing.error.title'),
+            i18n.tr('processing.error', message=message),
+        )
+
+    def closeEvent(self, event) -> None:
+        if self.__processing_dialog is not None:
+            event.ignore()
+        else:
+            super().closeEvent(event)
+
     def get_export_mode(self) -> ExportMode:
         return self.__tabs.tabData(self.__tabs.currentIndex())
 
@@ -145,6 +172,7 @@ class MainWindow(QMainWindow):
     def __mode_changed(self) -> None:
         self.__mode_stack.setCurrentIndex(self.__tabs.currentIndex())
         self.__mode_stack.updateGeometry()
+        self.__output_settings.set_export_mode(self.get_export_mode())
         self.__sync_mode()
 
     def __sync_mode(self) -> None:

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFormLayout
 from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, OutputData, UnitType
 
 from gui.i18n import i18n
+from gui.export_mode import ExportMode
 from gui.widgets.settings_panel import SettingsPanel
 from gui.unit_controls import (
     DEFAULT_OUTPUT_DIMENSION_PX, MIN_OUTPUT_DIMENSION_PX, OUTPUT_DPI_OPTIONS,
@@ -25,6 +26,8 @@ class OutputSettingPanel(SettingsPanel):
         self.__width_px = DEFAULT_OUTPUT_DIMENSION_PX
         self.__height_px = DEFAULT_OUTPUT_DIMENSION_PX
         self.__resize_unit = UnitType.PX
+        self.__mode = ExportMode.INDIVIDUAL
+        self.__mode_units = {ExportMode.INDIVIDUAL: UnitType.PX, ExportMode.KISS_CUT: UnitType.MM}
         self.__resize_dpi = DEFAULT_DPI
 
         self.__resize_enabled = False
@@ -54,6 +57,11 @@ class OutputSettingPanel(SettingsPanel):
         self.__height.valueChanged.connect(self.__height_changed)
         self.__unit.currentIndexChanged.connect(self.__preferences_changed)
         self.__resolution.currentIndexChanged.connect(self.__preferences_changed)
+
+    def set_export_mode(self, mode: ExportMode) -> None:
+        self.__mode = mode
+        self.__resize_unit = self.__mode_units[mode]
+        self._changed()
 
     def set_resize_enabled(self, enabled: bool) -> None:
         self.__resize_enabled = enabled
@@ -87,6 +95,7 @@ class OutputSettingPanel(SettingsPanel):
     def __preferences_changed(self, *_args) -> None:
         if self.__resize_enabled:
             self.__resize_unit = self.__unit.currentData()
+            self.__mode_units[self.__mode] = self.__resize_unit
             self.__resize_dpi = self.__resolution.currentData()
         self._changed()
 

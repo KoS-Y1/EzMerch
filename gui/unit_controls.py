@@ -1,5 +1,5 @@
 """Shared display behavior for controls whose canonical values are pixels."""
-from PySide6.QtCore import QSignalBlocker
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import QAbstractSpinBox, QDoubleSpinBox, QHBoxLayout, QLabel, QWidget
 
 from core.output_setting import UnitType
@@ -7,7 +7,7 @@ from utils.units import mm_to_px, px_to_mm
 from gui.i18n import i18n
 
 PIXEL_DECIMALS = 0
-MILLIMETER_DECIMALS = 6
+MILLIMETER_DECIMALS = 2
 PIXEL_STEP = 1
 MILLIMETER_STEP = 0.1
 MIN_OUTPUT_DIMENSION_PX = 1
@@ -28,6 +28,8 @@ class UnitFieldRow(QWidget):
         )
         self.__layout.setSpacing(UNIT_LABEL_SPACING)
         self.__unit_label = QLabel()
+        field.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.__unit_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.__layout.addWidget(field)
         self.__layout.addWidget(self.__unit_label)
         self.set_unit(UnitType.PX)
@@ -49,6 +51,12 @@ def configure_pixel_field(
     min_px: int, max_px: int,
 ) -> None:
     millimeters = unit == UnitType.MM
+    context = (unit, dpi, min_px, max_px)
+    # Keep a committed mm entry (e.g. 3.00) instead of snapping it to 3.05.
+    preserve_entry = (
+        getattr(field, '_unit_context', None) == context
+        and read_pixel_value(field.value(), unit, dpi, min_px, max_px) == pixels
+    )
     with QSignalBlocker(field):
         field.setKeyboardTracking(False)
         field.setCorrectionMode(QAbstractSpinBox.CorrectionMode.CorrectToNearestValue)
@@ -59,4 +67,6 @@ def configure_pixel_field(
         )
         field.setSingleStep(MILLIMETER_STEP if millimeters else PIXEL_STEP)
         field.setSuffix('')
-        field.setValue(px_to_mm(pixels, dpi) if millimeters else pixels)
+        if not preserve_entry:
+            field.setValue(px_to_mm(pixels, dpi) if millimeters else pixels)
+    field._unit_context = context

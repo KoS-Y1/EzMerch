@@ -78,5 +78,11 @@
 
   "mode.individual": "Individual Items",
   "mode.kiss_cut": "Kiss Cut",
-  "mode.sticker_settings": "Individual Sticker Settings"
+  "mode.sticker_settings": "Individual Sticker Settings",
+
+  "processing.title": "Processing",
+  "processing.load": "Loading images…",
+  "processing.export": "Exporting…",
+  "processing.error.title": "Processing failed",
+  "processing.error": "Processing could not finish.\n{message}"
 }

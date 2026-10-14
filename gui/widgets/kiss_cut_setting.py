@@ -3,7 +3,7 @@
 #
 
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout
+from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGridLayout
 
 from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, KissCutData, UnitType
 from gui.i18n import i18n
@@ -25,11 +25,15 @@ class KissCutSettingPanel(SettingsPanel):
 
     def __init__(self, parent=None):
         super().__init__('kiss.title', parent)
-        self.__layout = QHBoxLayout(self)
+        self.__layout = QGridLayout(self)
         self.__margin_layout = QFormLayout()
         self.__spacing_layout = QFormLayout()
-        self.__layout.addLayout(self.__margin_layout, stretch=KISS_COLUMN_STRETCH)
-        self.__layout.addLayout(self.__spacing_layout, stretch=KISS_COLUMN_STRETCH)
+        self.__layout.addLayout(self.__margin_layout, 0, 0)
+        self.__layout.addLayout(self.__spacing_layout, 0, 1)
+        for column in (0, 1):
+            self.__layout.setColumnStretch(column, KISS_COLUMN_STRETCH)
+        for layout in (self.__margin_layout, self.__spacing_layout):
+            layout.setContentsMargins(0, 0, 0, 0)
         self.__margin_mm = DEFAULT_KISS_MARGIN_MM
         self.__spacing_mm = DEFAULT_KISS_SPACING_MM
         self.__dpi = DEFAULT_DPI
@@ -58,10 +62,14 @@ class KissCutSettingPanel(SettingsPanel):
         self.__spacing_unit.currentIndexChanged.connect(self._changed)
 
     def get_kiss_cut_data(self) -> KissCutData:
+        margin_unit = self.__margin_unit.currentData()
+        spacing_unit = self.__spacing_unit.currentData()
         return KissCutData(
             dpi=self.__dpi,
-            margin=self.__margin.value(), margin_unit=self.__margin_unit.currentData(),
-            spacing=self.__spacing.value(), spacing_unit=self.__spacing_unit.currentData(),
+            margin=self.__margin_mm if margin_unit == UnitType.MM else mm_to_px(self.__margin_mm, self.__dpi),
+            margin_unit=margin_unit,
+            spacing=self.__spacing_mm if spacing_unit == UnitType.MM else mm_to_px(self.__spacing_mm, self.__dpi),
+            spacing_unit=spacing_unit,
         )
 
     def set_output_dpi(self, dpi: int) -> None:

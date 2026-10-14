@@ -79,5 +79,11 @@
 
   "mode.individual": "单件美工",
   "mode.kiss_cut": "半切贴纸",
-  "mode.sticker_settings": "单张贴纸设置"
+  "mode.sticker_settings": "单张贴纸设置",
+
+  "processing.title": "正在处理",
+  "processing.load": "正在加载图片…",
+  "processing.export": "正在导出…",
+  "processing.error.title": "处理失败",
+  "processing.error": "无法完成处理。\n{message}"
 }
