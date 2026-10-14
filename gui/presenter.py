@@ -5,6 +5,7 @@ from core.output_setting import FileFormat
 from core.processor import Processor
 from gui.main_window import MainWindow
 from gui.dialogs.batch_result import BatchOperation
+from gui.export_mode import ExportMode
 
 
 class Presenter:
@@ -28,6 +29,8 @@ class Presenter:
         self.__view.show_batch_result(BatchOperation.LOAD, result)
 
     def __handle_export(self, destination: pathlib.Path | None, file_format: FileFormat) -> None:
+        if self.__view.get_export_mode() != ExportMode.INDIVIDUAL:
+            return
         if destination is None:
             return
 

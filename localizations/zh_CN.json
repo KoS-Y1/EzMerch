@@ -72,6 +72,10 @@
   "kiss.spacing.unit": "间距单位",
   "kiss.spacing": "贴纸间距",
   "kiss.margin.tooltip": "从画布各边缘向内预留的距离。",
-  "kiss.spacing.tooltip": "相邻贴纸之间的间隔。"
+  "kiss.spacing.tooltip": "相邻贴纸之间的间隔。",
 
+  "mode.individual": "单件美工",
+  "mode.kiss_cut": "半切贴纸",
+  "mode.sticker_settings": "单张贴纸设置",
+  "export.sheet.unavailable": "半切贴纸整版导出功能尚未实现。"
 }

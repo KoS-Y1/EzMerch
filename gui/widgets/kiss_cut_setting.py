@@ -3,7 +3,7 @@
 #
 
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout
+from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout
 
 from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, UnitType
 from gui.i18n import i18n
@@ -17,6 +17,7 @@ DEFAULT_KISS_MARGIN_MM = 3.0
 DEFAULT_KISS_SPACING_MM = 3.0
 MIN_KISS_DISTANCE_MM = 0.0
 MAX_KISS_DISTANCE_PX = MAX_OUTPUT_DIMENSION_PX
+KISS_COLUMN_STRETCH = 1
 
 
 class KissCutSettingPanel(SettingsPanel):
@@ -24,7 +25,11 @@ class KissCutSettingPanel(SettingsPanel):
 
     def __init__(self, parent=None):
         super().__init__('kiss.title', parent)
-        self.__form_layout = QFormLayout(self)
+        self.__layout = QHBoxLayout(self)
+        self.__margin_layout = QFormLayout()
+        self.__spacing_layout = QFormLayout()
+        self.__layout.addLayout(self.__margin_layout, stretch=KISS_COLUMN_STRETCH)
+        self.__layout.addLayout(self.__spacing_layout, stretch=KISS_COLUMN_STRETCH)
         self.__margin_mm = DEFAULT_KISS_MARGIN_MM
         self.__spacing_mm = DEFAULT_KISS_SPACING_MM
         self.__dpi = DEFAULT_DPI
@@ -41,16 +46,23 @@ class KissCutSettingPanel(SettingsPanel):
             self.__margin: UnitFieldRow(self.__margin),
             self.__spacing: UnitFieldRow(self.__spacing),
         }
-        self.__form_layout.addRow(i18n.tr('kiss.margin.unit'), self.__margin_unit)
-        self.__form_layout.addRow(i18n.tr('kiss.margin'), self.__field_rows[self.__margin])
-        self.__form_layout.addRow(i18n.tr('kiss.spacing.unit'), self.__spacing_unit)
-        self.__form_layout.addRow(i18n.tr('kiss.spacing'), self.__field_rows[self.__spacing])
+        self.__margin_layout.addRow(i18n.tr('kiss.margin.unit'), self.__margin_unit)
+        self.__margin_layout.addRow(i18n.tr('kiss.margin'), self.__field_rows[self.__margin])
+        self.__spacing_layout.addRow(i18n.tr('kiss.spacing.unit'), self.__spacing_unit)
+        self.__spacing_layout.addRow(i18n.tr('kiss.spacing'), self.__field_rows[self.__spacing])
         self.__bind_translations()
         self._refresh()
         self.__margin.valueChanged.connect(self.__margin_changed)
         self.__spacing.valueChanged.connect(self.__spacing_changed)
         self.__margin_unit.currentIndexChanged.connect(self._changed)
         self.__spacing_unit.currentIndexChanged.connect(self._changed)
+
+    def set_output_dpi(self, dpi: int) -> None:
+        self.__dpi = dpi
+        maximum_mm = px_to_mm(MAX_KISS_DISTANCE_PX, dpi)
+        self.__margin_mm = min(self.__margin_mm, maximum_mm)
+        self.__spacing_mm = min(self.__spacing_mm, maximum_mm)
+        self._refresh()
 
     def __margin_changed(self, value: float) -> None:
         self.__margin_mm = (
@@ -94,27 +106,27 @@ class KissCutSettingPanel(SettingsPanel):
         pass
 
     def __bind_translations(self) -> None:
-        self._translations.bind_form_label(self.__form_layout, self.__margin_unit, 'kiss.margin.unit')
+        self._translations.bind_form_label(self.__margin_layout, self.__margin_unit, 'kiss.margin.unit')
         self._translations.bind_combo(self.__margin_unit, lambda unit: f'unit.{unit.value}')
-        self._translations.bind_form_label(self.__form_layout, self.__spacing_unit, 'kiss.spacing.unit')
+        self._translations.bind_form_label(self.__spacing_layout, self.__spacing_unit, 'kiss.spacing.unit')
         self._translations.bind_combo(self.__spacing_unit, lambda unit: f'unit.{unit.value}')
-        self._translations.bind_form_label(self.__form_layout, self.__field_rows[self.__margin], 'kiss.margin')
+        self._translations.bind_form_label(self.__margin_layout, self.__field_rows[self.__margin], 'kiss.margin')
         self._translations.bind_text(
             self.__field_rows[self.__margin].set_unit_text,
             lambda: f'unit.{self.__margin_unit.currentData().value}',
         )
         self._translations.bind_text(self.__field_rows[self.__margin].setToolTip, 'kiss.margin.tooltip')
         self._translations.bind_text(self.__margin_unit.setToolTip, 'kiss.margin.tooltip')
-        label = self.__form_layout.labelForField(self.__field_rows[self.__margin])
+        label = self.__margin_layout.labelForField(self.__field_rows[self.__margin])
         if label is not None:
             self._translations.bind_text(label.setToolTip, 'kiss.margin.tooltip')
-        self._translations.bind_form_label(self.__form_layout, self.__field_rows[self.__spacing], 'kiss.spacing')
+        self._translations.bind_form_label(self.__spacing_layout, self.__field_rows[self.__spacing], 'kiss.spacing')
         self._translations.bind_text(
             self.__field_rows[self.__spacing].set_unit_text,
             lambda: f'unit.{self.__spacing_unit.currentData().value}',
         )
         self._translations.bind_text(self.__field_rows[self.__spacing].setToolTip, 'kiss.spacing.tooltip')
         self._translations.bind_text(self.__spacing_unit.setToolTip, 'kiss.spacing.tooltip')
-        label = self.__form_layout.labelForField(self.__field_rows[self.__spacing])
+        label = self.__spacing_layout.labelForField(self.__field_rows[self.__spacing])
         if label is not None:
             self._translations.bind_text(label.setToolTip, 'kiss.spacing.tooltip')

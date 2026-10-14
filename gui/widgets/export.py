@@ -42,6 +42,10 @@ class ExportPanel(QGroupBox):
         self.__layout.addWidget(self.__directory)
         self.__layout.addWidget(self.__browse)
         self.__layout.addWidget(self.__export)
+        self.__mode_notice = QLabel()
+        self.__mode_notice.setWordWrap(True)
+        self.__mode_notice.hide()
+        self.__layout.addWidget(self.__mode_notice)
         self.__translations = UiTranslations()
         for setter, key in (
             (self.setTitle, 'export.title'),
@@ -53,6 +57,11 @@ class ExportPanel(QGroupBox):
         ):
             self.__translations.bind_text(setter, key)
         self.__translations.bind_combo(self.__file_format, lambda fmt: f'format.{fmt.value}')
+        self.__translations.bind_text(self.__mode_notice.setText, 'export.sheet.unavailable')
+
+    def set_export_available(self, available: bool) -> None:
+        self.__export.setEnabled(available)
+        self.__mode_notice.setVisible(not available)
 
     def get_export_directory(self) -> pathlib.Path | None:
         text = self.__directory.text()

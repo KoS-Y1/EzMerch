@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFrame, QLayout, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout,
-    QGridLayout, QScrollArea,
+    QScrollArea, QTabBar, QSizePolicy,
 )
 
 from gui.i18n import i18n, Language
@@ -20,16 +20,15 @@ from gui.widgets.output_setting import OutputSettingPanel
 from gui.widgets.resize import ResizePanel
 from gui.widgets.dieline_setting import DielineSettingPanel
 from gui.widgets.bleed_setting import BleedSetting
+from gui.export_mode import ExportMode
+from gui.widgets.export_modes import IndividualSettingsPage, KissCutSettingsPage, ModeSettingsStack
 
 WINDOW_WIDTH = 640
 WINDOW_HEIGHT = 720
 PANEL_STRETCH = 1
-RESIZE_ROW = 0
-BLEED_ROW = 1
-LEFT_OPERATION_COLUMN = 0
-RIGHT_OPERATION_COLUMN = 1
-DIELINE_ROW_SPAN = 2
-OPERATION_COLUMN_SPAN = 1
+CENTRAL_MARGIN = 0
+MODE_INDIVIDUAL_INDEX = 0
+MODE_KISS_CUT_INDEX = 1
 
 class MainWindow(QMainWindow):
     def __init__(self, settings: AppSettings):
@@ -46,19 +45,17 @@ class MainWindow(QMainWindow):
         self.__import = ImportPanel(self)
         self.__output_settings = OutputSettingPanel(self)
         self.__export = ExportPanel(self)
-        self.__resize = ResizePanel(self)
-        self.__dieline = DielineSettingPanel(self)
-        self.__bleed = BleedSetting(self)
-
-        operation_layout = QGridLayout()
-        operation_layout.addWidget(self.__resize, RESIZE_ROW, LEFT_OPERATION_COLUMN)
-        operation_layout.addWidget(self.__bleed, BLEED_ROW, LEFT_OPERATION_COLUMN)
-        operation_layout.addWidget(
-            self.__dieline, RESIZE_ROW, RIGHT_OPERATION_COLUMN,
-            DIELINE_ROW_SPAN, OPERATION_COLUMN_SPAN,
-        )
-        operation_layout.setColumnStretch(LEFT_OPERATION_COLUMN, PANEL_STRETCH)
-        operation_layout.setColumnStretch(RIGHT_OPERATION_COLUMN, PANEL_STRETCH)
+        self.__individual_page = IndividualSettingsPage()
+        self.__kiss_page = KissCutSettingsPage()
+        self.__mode_stack = ModeSettingsStack()
+        self.__mode_stack.addWidget(self.__individual_page)
+        self.__mode_stack.addWidget(self.__kiss_page)
+        self.__mode_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.__tabs = QTabBar()
+        self.__tabs.addTab(i18n.tr('mode.individual'))
+        self.__tabs.setTabData(MODE_INDIVIDUAL_INDEX, ExportMode.INDIVIDUAL)
+        self.__tabs.addTab(i18n.tr('mode.kiss_cut'))
+        self.__tabs.setTabData(MODE_KISS_CUT_INDEX, ExportMode.KISS_CUT)
 
         output_layout = QHBoxLayout()
         output_layout.addWidget(self.__output_settings, stretch=PANEL_STRETCH)
@@ -68,7 +65,7 @@ class MainWindow(QMainWindow):
         )
 
         layout.addWidget(self.__import)
-        layout.addLayout(operation_layout)
+        layout.addWidget(self.__mode_stack)
         layout.addLayout(output_layout)
         layout.addStretch()
 
@@ -78,10 +75,16 @@ class MainWindow(QMainWindow):
         self.__scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.__scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         self.__scroll_area.setWidget(content)
-        self.setCentralWidget(self.__scroll_area)
-        self.__resize.resize_toggled.connect(self.__output_settings.set_resize_enabled)
+        central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(CENTRAL_MARGIN, CENTRAL_MARGIN, CENTRAL_MARGIN, CENTRAL_MARGIN)
+        central_layout.addWidget(self.__tabs)
+        central_layout.addWidget(self.__scroll_area)
+        self.setCentralWidget(central)
+        self.__individual_page.get_resize_panel().resize_toggled.connect(self.__sync_mode)
         self.__output_settings.settings_changed.connect(self.__sync_effect_context)
-        self.__output_settings.set_resize_enabled(self.__resize.is_resize_enabled())
+        self.__tabs.currentChanged.connect(self.__mode_changed)
+        self.__sync_mode()
 
         self.__settings_menu = self.menuBar().addMenu(i18n.tr("menu.settings"))
         self.__language_menu = self.__settings_menu.addMenu(i18n.tr("menu.settings.language"))
@@ -101,6 +104,12 @@ class MainWindow(QMainWindow):
         self.__translations.bind_text(self.setWindowTitle, 'app.title')
         self.__translations.bind_text(self.__settings_menu.setTitle, 'menu.settings')
         self.__translations.bind_text(self.__language_menu.setTitle, 'menu.settings.language')
+        self.__translations.bind_text(
+            lambda text: self.__tabs.setTabText(MODE_INDIVIDUAL_INDEX, text), 'mode.individual',
+        )
+        self.__translations.bind_text(
+            lambda text: self.__tabs.setTabText(MODE_KISS_CUT_INDEX, text), 'mode.kiss_cut',
+        )
 
     def __change_language(self, action: QAction) -> None:
         language = action.data()
@@ -115,8 +124,8 @@ class MainWindow(QMainWindow):
     def retranslate_ui(self) -> None:
         self.__translations.retranslate()
         for panel in (
-            self.__import, self.__resize, self.__bleed,
-            self.__dieline, self.__output_settings, self.__export,
+            self.__import, self.__individual_page, self.__kiss_page,
+            self.__output_settings, self.__export,
         ):
             panel.retranslate_ui()
 
@@ -124,18 +133,38 @@ class MainWindow(QMainWindow):
         dialog = BatchResultDialog(operation, result, self)
         dialog.exec()
 
+    def get_export_mode(self) -> ExportMode:
+        return self.__tabs.tabData(self.__tabs.currentIndex())
+
+    def get_individual_page(self) -> IndividualSettingsPage:
+        return self.__individual_page
+
+    def get_kiss_cut_page(self) -> KissCutSettingsPage:
+        return self.__kiss_page
+
+    def __mode_changed(self) -> None:
+        self.__mode_stack.setCurrentIndex(self.__tabs.currentIndex())
+        self.__mode_stack.updateGeometry()
+        self.__sync_mode()
+
+    def __sync_mode(self) -> None:
+        individual = self.get_export_mode() == ExportMode.INDIVIDUAL
+        enabled = self.get_resize_panel().is_resize_enabled() if individual else True
+        self.__output_settings.set_resize_enabled(enabled)
+        self.__export.set_export_available(individual)
+
     def __sync_effect_context(self, output) -> None:
-        self.__dieline.set_output_context(output.dpi, self.__resize.is_resize_enabled())
-        self.__bleed.set_output_context(output.dpi, self.__resize.is_resize_enabled())
+        page = self.__individual_page if self.get_export_mode() == ExportMode.INDIVIDUAL else self.__kiss_page
+        page.set_output_dpi(output.dpi)
 
     def get_bleed_settings(self) -> BleedSetting:
-        return self.__bleed
+        return self.__individual_page.get_bleed_settings()
 
     def get_resize_panel(self) -> ResizePanel:
-        return self.__resize
+        return self.__individual_page.get_resize_panel()
 
     def get_dieline_settings(self) -> DielineSettingPanel:
-        return self.__dieline
+        return self.__individual_page.get_dieline_settings()
 
     def get_import_panel(self)->ImportPanel:
         return self.__import

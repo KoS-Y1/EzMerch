@@ -33,13 +33,13 @@
   "export.title": "Export Images",
   "export.export": "Export",
   "export.format": "Export File Format",
-  "export.directory": "Export folder",
+  "export.directory": "Export Folder",
   "export.directory.placeholder": "Export Folder Path",
   "export.directory.browse": "Browse…",
   "export.directory.dialog.title": "Select Export Folder",
 
   "resize.title": "Resize",
-  "resize.enable": "Enable resizing",
+  "resize.enable": "Enable Resizing",
   "resize.tooltip": "Fits each image within the requested output canvas while preserving aspect ratio.",
 
   "dieline.title": "Dieline Settings",
@@ -66,11 +66,15 @@
   "batch.ok": "OK",
 
   "kiss.title": "Kiss Cut Settings",
-  "kiss.margin.unit": "Margin unit",
-  "kiss.margin": "Canvas margin",
-  "kiss.spacing.unit": "Spacing unit",
-  "kiss.spacing": "Sticker spacing",
+  "kiss.margin.unit": "Margin Unit",
+  "kiss.margin": "Canvas Margin",
+  "kiss.spacing.unit": "Spacing Unit",
+  "kiss.spacing": "Sticker Spacing",
   "kiss.margin.tooltip": "Inward distance from each canvas edge to the sticker layout.",
-  "kiss.spacing.tooltip": "Gap between neighboring stickers."
+  "kiss.spacing.tooltip": "Gap between neighboring stickers.",
 
+  "mode.individual": "Individual Items",
+  "mode.kiss_cut": "Kiss Cut",
+  "mode.sticker_settings": "Individual Sticker Settings",
+  "export.sheet.unavailable": "Kiss Cut sheet export is not implemented yet."
 }
