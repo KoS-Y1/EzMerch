@@ -37,6 +37,9 @@
   "export.directory.placeholder": "Export Folder Path",
   "export.directory.browse": "Browse…",
   "export.directory.dialog.title": "Select Export Folder",
+  "export.file": "Export File",
+  "export.file.placeholder": "Export File Path",
+  "export.file.dialog.title": "Save Kiss Cut Sheet",
 
   "resize.title": "Resize",
   "resize.enable": "Enable Resizing",
@@ -75,6 +78,5 @@
 
   "mode.individual": "Individual Items",
   "mode.kiss_cut": "Kiss Cut",
-  "mode.sticker_settings": "Individual Sticker Settings",
-  "export.sheet.unavailable": "Kiss Cut sheet export is not implemented yet."
+  "mode.sticker_settings": "Individual Sticker Settings"
 }

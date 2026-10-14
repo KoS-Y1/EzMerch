@@ -29,8 +29,6 @@ class Presenter:
         self.__view.show_batch_result(BatchOperation.LOAD, result)
 
     def __handle_export(self, destination: pathlib.Path | None, file_format: FileFormat) -> None:
-        if self.__view.get_export_mode() != ExportMode.INDIVIDUAL:
-            return
         if destination is None:
             return
 
@@ -40,7 +38,13 @@ class Presenter:
             output.width, output.height, output.dpi, output.unit, output.color,
         )
         self.__processor.set_output_dpi(output.dpi)
-        dieline_panel = self.__view.get_dieline_settings()
+        mode = self.__view.get_export_mode()
+        page_selector = {
+            ExportMode.INDIVIDUAL: self.__view.get_individual_page,
+            ExportMode.KISS_CUT: self.__view.get_kiss_cut_page,
+        }
+        page = page_selector[mode]()
+        dieline_panel = page.get_dieline_settings()
         dieline = dieline_panel.get_dieline_data()
         self.__processor.set_dieline_data(
             dieline.thickness, dieline.distance, dieline.dpi, dieline.unit,
@@ -48,13 +52,28 @@ class Presenter:
         elements = {EntityElements.BASE}
         if dieline_panel.is_dieline_enabled():
             elements.add(EntityElements.DIELINE)
-        bleed_panel = self.__view.get_bleed_settings()
+        bleed_panel = page.get_bleed_settings()
         bleed = bleed_panel.get_bleed_data()
         self.__processor.set_bleed_data(bleed.distance, bleed.dpi, bleed.unit)
         if bleed_panel.is_bleed_enabled():
             elements.add(EntityElements.BLEED)
-        result = self.__processor.export_individuals(
-            destination, file_format, elements,
-            resize=self.__view.get_resize_panel().is_resize_enabled(),
-        )
+        def export_individuals():
+            return self.__processor.export_individuals(
+                destination, file_format, elements,
+                resize=page.get_resize_panel().is_resize_enabled(),
+            )
+
+        def export_kiss_cut():
+            kiss_cut = page.get_kiss_settings().get_kiss_cut_data()
+            self.__processor.set_kiss_cut_data(
+                margin=kiss_cut.margin, spacing=kiss_cut.spacing, dpi=kiss_cut.dpi,
+                margin_unit=kiss_cut.margin_unit, spacing_unit=kiss_cut.spacing_unit,
+            )
+            return self.__processor.export_kiss_cut(destination, file_format, elements)
+
+        export_selector = {
+            ExportMode.INDIVIDUAL: export_individuals,
+            ExportMode.KISS_CUT: export_kiss_cut,
+        }
+        result = export_selector[mode]()
         self.__view.show_batch_result(BatchOperation.EXPORT, result)

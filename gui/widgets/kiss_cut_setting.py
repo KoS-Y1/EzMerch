@@ -5,7 +5,7 @@
 from PySide6.QtCore import QSignalBlocker
 from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout
 
-from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, UnitType
+from core.output_setting import DEFAULT_DPI, MAX_OUTPUT_DIMENSION_PX, KissCutData, UnitType
 from gui.i18n import i18n
 from gui.widgets.settings_panel import SettingsPanel
 from gui.unit_controls import (
@@ -21,7 +21,7 @@ KISS_COLUMN_STRETCH = 1
 
 
 class KissCutSettingPanel(SettingsPanel):
-    """Canvas-edge margin and sticker spacing; sheet layout is not implemented yet."""
+    """Canvas-edge margin and spacing for the kiss-cut sheet."""
 
     def __init__(self, parent=None):
         super().__init__('kiss.title', parent)
@@ -57,6 +57,13 @@ class KissCutSettingPanel(SettingsPanel):
         self.__margin_unit.currentIndexChanged.connect(self._changed)
         self.__spacing_unit.currentIndexChanged.connect(self._changed)
 
+    def get_kiss_cut_data(self) -> KissCutData:
+        return KissCutData(
+            dpi=self.__dpi,
+            margin=self.__margin.value(), margin_unit=self.__margin_unit.currentData(),
+            spacing=self.__spacing.value(), spacing_unit=self.__spacing_unit.currentData(),
+        )
+
     def set_output_dpi(self, dpi: int) -> None:
         self.__dpi = dpi
         maximum_mm = px_to_mm(MAX_KISS_DISTANCE_PX, dpi)
@@ -80,7 +87,6 @@ class KissCutSettingPanel(SettingsPanel):
 
     def _changed(self) -> None:
         self._refresh()
-        self.__update_layout()
 
     def _refresh(self) -> None:
         for field, value_mm, combo in (
@@ -100,10 +106,6 @@ class KissCutSettingPanel(SettingsPanel):
                 field.setSingleStep(MILLIMETER_STEP if millimeters else PIXEL_STEP)
                 field.setValue(value_mm if millimeters else mm_to_px(value_mm, self.__dpi))
             self.__field_rows[field].set_unit(unit)
-
-    def __update_layout(self) -> None:
-        # TODO: Apply margin and spacing when the sheet-layout backend is available.
-        pass
 
     def __bind_translations(self) -> None:
         self._translations.bind_form_label(self.__margin_layout, self.__margin_unit, 'kiss.margin.unit')

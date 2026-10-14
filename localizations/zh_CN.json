@@ -37,6 +37,9 @@
   "export.directory.placeholder": "导出文件夹路径",
   "export.directory.browse": "浏览…",
   "export.directory.dialog.title": "选择导出文件夹",
+  "export.file": "导出文件",
+  "export.file.placeholder": "导出文件路径",
+  "export.file.dialog.title": "保存半切贴纸整版",
 
 
   "resize.title": "调整尺寸",
@@ -76,6 +79,5 @@
 
   "mode.individual": "单件美工",
   "mode.kiss_cut": "半切贴纸",
-  "mode.sticker_settings": "单张贴纸设置",
-  "export.sheet.unavailable": "半切贴纸整版导出功能尚未实现。"
+  "mode.sticker_settings": "单张贴纸设置"
 }

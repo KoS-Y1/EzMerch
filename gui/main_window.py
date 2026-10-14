@@ -148,14 +148,20 @@ class MainWindow(QMainWindow):
         self.__sync_mode()
 
     def __sync_mode(self) -> None:
-        individual = self.get_export_mode() == ExportMode.INDIVIDUAL
-        enabled = self.get_resize_panel().is_resize_enabled() if individual else True
+        resize_selector = {
+            ExportMode.INDIVIDUAL: self.get_resize_panel().is_resize_enabled,
+            ExportMode.KISS_CUT: lambda: True,
+        }
+        enabled = resize_selector[self.get_export_mode()]()
         self.__output_settings.set_resize_enabled(enabled)
-        self.__export.set_export_available(individual)
+        self.__export.set_export_mode(self.get_export_mode())
 
     def __sync_effect_context(self, output) -> None:
-        page = self.__individual_page if self.get_export_mode() == ExportMode.INDIVIDUAL else self.__kiss_page
-        page.set_output_dpi(output.dpi)
+        dpi_selector = {
+            ExportMode.INDIVIDUAL: self.__individual_page.set_output_dpi,
+            ExportMode.KISS_CUT: self.__kiss_page.set_output_dpi,
+        }
+        dpi_selector[self.get_export_mode()](output.dpi)
 
     def get_bleed_settings(self) -> BleedSetting:
         return self.__individual_page.get_bleed_settings()
