@@ -51,7 +51,7 @@ class CLIInterface:
 
     def execute(self, processor: Processor):
         args = self.parser.parse_args()
-        logger.info("---------- EzSticker running from CLI----------")
+        logger.info("---------- EzMerch running from CLI----------")
 
         processor.set_output_unit(UnitType(args.unit))
         processor.set_output_color(ColorFormat(args.color))

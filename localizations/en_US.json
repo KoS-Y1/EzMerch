@@ -56,6 +56,13 @@
   "bleed.distance": "Distance",
   "bleed.unit": "Unit",
 
+  "storage.error.title": "Could not save app data",
+  "storage.error": "Could not write to:\n{path}\n\nMove EzMerch to a folder you can write to, then restart it. The app will continue, but this file may not be saved.",
+  "menu.about": "About",
+  "about.title": "About EzMerch",
+  "about.version": "Version: {version}",
+  "about.author": "Author: {author}",
+  "about.ok": "OK",
   "menu.settings": "Settings",
   "menu.settings.language": "Language",
 

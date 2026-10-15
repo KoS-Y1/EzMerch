@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QFrame, QLayout, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout,
-    QScrollArea, QTabBar, QSizePolicy, QMessageBox,
+    QScrollArea, QTabBar, QSizePolicy, QMessageBox, QLabel,
 )
 
 from gui.i18n import i18n, Language
@@ -102,9 +102,12 @@ class MainWindow(QMainWindow):
             self.__language_menu.addAction(action)
             self.__language_actions[language] = action
         self.__language_group.triggered.connect(self.__change_language)
+        self.__about_action = self.menuBar().addAction(i18n.tr('menu.about'))
+        self.__about_action.triggered.connect(self.__show_about)
         self.__translations = UiTranslations()
         self.__translations.bind_text(self.setWindowTitle, 'app.title')
         self.__translations.bind_text(self.__settings_menu.setTitle, 'menu.settings')
+        self.__translations.bind_text(self.__about_action.setText, 'menu.about')
         self.__translations.bind_text(self.__language_menu.setTitle, 'menu.settings.language')
         self.__translations.bind_text(
             lambda text: self.__tabs.setTabText(MODE_INDIVIDUAL_INDEX, text), 'mode.individual',
@@ -112,6 +115,27 @@ class MainWindow(QMainWindow):
         self.__translations.bind_text(
             lambda text: self.__tabs.setTabText(MODE_KISS_CUT_INDEX, text), 'mode.kiss_cut',
         )
+
+    def __show_about(self) -> None:
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle(i18n.tr('about.title'))
+        dialog.setTextFormat(Qt.TextFormat.RichText)
+        dialog.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+        )
+        dialog.setText(
+            '<h3>EzMerch</h3>'
+            f'<p>{i18n.tr("about.version", version="0.1.0")}<br>'
+            f'{i18n.tr("about.author", author="KoS-Y1")}</p>'
+            '<p><a href="https://github.com/KoS-Y1/EzMerch">'
+            'https://github.com/KoS-Y1/EzMerch</a></p>'
+        )
+        dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        dialog.button(QMessageBox.StandardButton.Ok).setText(i18n.tr('about.ok'))
+        for label in dialog.findChildren(QLabel):
+            label.setOpenExternalLinks(True)
+        dialog.exec()
 
     def __change_language(self, action: QAction) -> None:
         language = action.data()
@@ -121,7 +145,18 @@ class MainWindow(QMainWindow):
         i18n.load(language)
         self.retranslate_ui()
         QTimer.singleShot(0, lambda: self.__scroll_area.verticalScrollBar().setValue(position))
-        self.__settings.set_language(language)
+        if not self.__settings.set_language(language):
+            self.show_storage_error(self.__settings.get_filename())
+
+    def show_storage_error(self, path: str) -> None:
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Icon.Warning)
+        dialog.setWindowTitle(i18n.tr('storage.error.title'))
+        dialog.setTextFormat(Qt.TextFormat.PlainText)
+        dialog.setText(i18n.tr('storage.error', path=path))
+        dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        dialog.button(QMessageBox.StandardButton.Ok).setText(i18n.tr('about.ok'))
+        dialog.exec()
 
     def retranslate_ui(self) -> None:
         self.__translations.retranslate()
