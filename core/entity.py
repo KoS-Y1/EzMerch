@@ -72,34 +72,18 @@ class Entity:
         self.__dieline_data = DielineData()
         self.__bleed_data = BleedData()
 
+    def get_image_size(self) -> tuple[int, int]:
+        height, width = self.__image.shape[:2]
+        return width, height
+
     def get_name(self) -> str:
         return self.__name
 
     def get_elements(
-        self, elements: set[EntityElements], resize: bool = False
+            self, elements: set[EntityElements], resize: bool = False
     ) -> tuple[list[tuple[cv2.typing.MatLike, str]], tuple[int, int]]:
         def pre_calculate_sizes() -> None:
-            def base_padding() -> int:
-                return 0
-
-            def dieline_padding() -> int:
-                return self.__dieline_data.get_thickness_px() + self.__dieline_data.get_distance_px() + 1
-
-            def bleed_padding() -> int:
-                return self.__bleed_data.get_distance_px()
-
-            padding_selector = {
-                EntityElements.BASE: base_padding,
-                EntityElements.BLEED: bleed_padding,
-                EntityElements.DIELINE: dieline_padding,
-            }
-
-            paddings: list[int] = []
-
-            for e in elements:
-                paddings.append(padding_selector[e]())
-
-            max_padding = max(paddings, default=0)
+            max_padding = self.get_required_paddings(elements)
 
             if resize:
                 width, height = self.__output_data.get_size_px()
@@ -183,6 +167,29 @@ class Entity:
             self.__bleed_data = replace(bleed_data)
             self.__need_recalculation = True
 
+    def get_required_paddings(self, elements: set[EntityElements]) -> int:
+        def base_padding() -> int:
+            return 0
+
+        def dieline_padding() -> int:
+            return self.__dieline_data.get_thickness_px() + self.__dieline_data.get_distance_px() + 1
+
+        def bleed_padding() -> int:
+            return self.__bleed_data.get_distance_px()
+
+        padding_selector = {
+            EntityElements.BASE: base_padding,
+            EntityElements.BLEED: bleed_padding,
+            EntityElements.DIELINE: dieline_padding,
+        }
+
+        paddings: list[int] = []
+
+        for e in elements:
+            paddings.append(padding_selector[e]())
+
+        return max(paddings, default=0)
+
     def __can_resize(self, width: int, height: int) -> bool:
         return self.__output_data.is_valid() and width > 0 and height > 0
 
@@ -254,8 +261,8 @@ class Entity:
         expanded = self.__expand(mask, self.__bleed_data.get_distance_px())
 
         bleed = np.full((*mask.shape, 4), 255, dtype=np.uint8)
-        bleed[:,:,3] = expanded
-        return  bleed
+        bleed[:, :, 3] = expanded
+        return bleed
 
     def __get_base_mask(self) -> cv2.typing.MatLike:
         _, mask = cv2.threshold(self.__elements[EntityElements.BASE][:, :, 3], 0, 255, cv2.THRESH_BINARY)
