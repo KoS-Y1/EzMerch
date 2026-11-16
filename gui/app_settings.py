@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class AppSettings:
     """Persistent application preferences, independent of image processing."""
 
-    def __init__(self, settings: QSettings | None = None):
+    def __init__(self, settings: QSettings | None = None) -> None:
         self.__settings = settings if settings is not None else QSettings(
             str(application_directory() / SETTINGS_FILENAME), QSettings.Format.IniFormat,
         )

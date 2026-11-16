@@ -20,7 +20,7 @@ UNIT_LABEL_SPACING = 4
 class UnitFieldRow(QWidget):
     """Keep the unit visible without making it part of editable numeric text."""
 
-    def __init__(self, field: QDoubleSpinBox, parent=None):
+    def __init__(self, field: QDoubleSpinBox, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.__layout = QHBoxLayout(self)
         self.__layout.setContentsMargins(

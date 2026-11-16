@@ -1,4 +1,7 @@
 """A busy indicator that cannot be dismissed during processing."""
+from gui.dialogs.batch_result import BatchOperation
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout
 
@@ -6,7 +9,7 @@ from gui.i18n import i18n
 
 
 class ProcessingDialog(QDialog):
-    def __init__(self, operation, parent=None):
+    def __init__(self, operation: BatchOperation, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(i18n.tr('processing.title'))
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -21,9 +24,9 @@ class ProcessingDialog(QDialog):
         progress.setTextVisible(False)
         layout.addWidget(progress)
 
-    def reject(self):
+    def reject(self) -> None:
         # Escape must not hide the indicator or allow another operation.
         pass
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         event.ignore()

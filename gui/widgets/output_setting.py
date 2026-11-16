@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-12
 #
 
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFormLayout
 
@@ -18,7 +19,7 @@ from gui.unit_controls import (
 class OutputSettingPanel(SettingsPanel):
     settings_changed = Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__("output.title", parent)
 
         self.__form_layout = QFormLayout(self)
@@ -92,7 +93,7 @@ class OutputSettingPanel(SettingsPanel):
         self._refresh()
         self.settings_changed.emit(self.get_output_data())
 
-    def __preferences_changed(self, *_args) -> None:
+    def __preferences_changed(self, *_args: object) -> None:
         if self.__resize_enabled:
             self.__resize_unit = self.__unit.currentData()
             self.__mode_units[self.__mode] = self.__resize_unit

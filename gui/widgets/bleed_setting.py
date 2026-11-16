@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-13
 #
 
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import QGroupBox, QFormLayout, QCheckBox, QDoubleSpinBox, QComboBox
 
@@ -18,7 +19,7 @@ MAX_BLEED_DIMENSION_PX = MAX_OUTPUT_DIMENSION_PX
 class BleedSetting(SettingsPanel):
     settings_changed = Signal(object, bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__("bleed.title", parent)
 
         self.__form_layout = QFormLayout(self)
@@ -65,7 +66,7 @@ class BleedSetting(SettingsPanel):
         )
         self._changed()
 
-    def __unit_changed(self, *_args) -> None:
+    def __unit_changed(self, *_args: object) -> None:
         if self.__resize_enabled:
             self.__preferred_unit = self.__unit.currentData()
         self._changed()

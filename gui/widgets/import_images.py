@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-12
 #
 
+from PySide6.QtWidgets import QWidget
 import pathlib
 
 from PySide6.QtCore import Qt, Signal
@@ -16,7 +17,7 @@ class ImportPanel(QGroupBox):
     images_selected = Signal(object)
     load_requested = Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__(i18n.tr("import.title"), parent)
 
         self.__layout = QVBoxLayout(self)

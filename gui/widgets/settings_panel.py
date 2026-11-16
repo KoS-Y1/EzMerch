@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-13
 #
 
+from PySide6.QtWidgets import QWidget
 from PySide6.QtWidgets import QGroupBox
 
 from gui.ui_translations import UiTranslations
@@ -10,7 +11,7 @@ from gui.ui_translations import UiTranslations
 class SettingsPanel(QGroupBox):
     """Settings lifecycle contract; subclasses own state and notifications."""
 
-    def __init__(self, title_key: str, parent=None):
+    def __init__(self, title_key: str, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.__translations = UiTranslations()
         self.__translations.bind_text(self.setTitle, title_key)

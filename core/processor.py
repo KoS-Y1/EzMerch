@@ -4,7 +4,8 @@
 
 import logging
 import pathlib
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, astuple
+from pydoc import doc
 
 import cv2
 
@@ -48,6 +49,8 @@ class Processor:
         self.__kiss_cut_data = KissCutData()
 
         self.__entities: list[Entity] = []
+        self.__kiss_cut_sheet_cache: Document | None = None
+        self.__kiss_cut_sheet_key: tuple[object, ...] | None = None
 
     def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
                         unit: UnitType = UnitType.PX, color: ColorFormat = ColorFormat.RGB) -> None:
@@ -109,8 +112,10 @@ class Processor:
 
     def clear_entity_list(self) -> None:
         self.__entities.clear()
+        self.__kiss_cut_sheet_cache = None
 
     def load_images(self, paths: list[pathlib.Path]) -> BatchResult:
+        self.__kiss_cut_sheet_cache = None
         logger.info("---------- Start loading images ----------")
 
         self.__load_batch.clear_batch()
@@ -199,6 +204,22 @@ class Processor:
         )
         return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
 
+    def prepare_kiss_cut_sheet(self, elements: set[EntityElements]) -> Document:
+        key = (tuple(id(e) for e in self.__entities), astuple(self.__output_data),
+               astuple(self.__kiss_cut_data), frozenset(elements),
+               astuple(self.__dieline_data) if EntityElements.DIELINE in elements else None,
+               astuple(self.__bleed_data) if EntityElements.BLEED in elements else None)
+        if self.__kiss_cut_sheet_cache is not None and key == self.__kiss_cut_sheet_key:
+            return self.__kiss_cut_sheet_cache
+        stickers = generate_kiss_cut(self.__entities, elements, self.__output_data,
+                                     self.__kiss_cut_data, self.__dieline_data, self.__bleed_data)
+        doc = Document(output_data=self.__output_data)
+        for sticker, name in stickers:
+            doc.add_folder(sticker, name)
+        self.__kiss_cut_sheet_cache = doc
+        self.__kiss_cut_sheet_key = key
+        return doc
+
     def export_kiss_cut(self, dst_path: pathlib.Path, file_format: FileFormat,
                         elements: set[EntityElements]) -> BatchResult:
         element_strs = ",".join(sorted(e.value for e in elements))
@@ -206,19 +227,12 @@ class Processor:
 
         self.__export_batch.clear_batch()
 
-        doc = Document(output_data=self.__output_data)
-
         try:
-            stickers = generate_kiss_cut(self.__entities, elements, self.__output_data, self.__kiss_cut_data,
-                                         self.__dieline_data, self.__bleed_data)
+            doc = self.prepare_kiss_cut_sheet(elements)
         except (OSError, cv2.error, ValueError) as exc:
-            logger.warning(f"Failed to generate kiss cut {dst_path}, {exc}")
+            logger.warning(f"Failed to generate kiss cut: {exc}")
             self.__export_batch.failed.append(dst_path)
-            return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
-
-
-        for sticker, sticker_name in stickers:
-            doc.add_folder(sticker, sticker_name)
+            return BatchResult([], self.__export_batch.failed.copy())
 
         try:
             export(dst_path, doc, file_format)
@@ -237,4 +251,3 @@ class Processor:
             f"Failed to export:\n{failed or '(none)'}\n"
         )
         return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
-

@@ -92,5 +92,9 @@
   "processing.load": "正在加载图片…",
   "processing.export": "正在导出…",
   "processing.error.title": "处理失败",
-  "processing.error": "无法完成处理。\n{message}"
+  "processing.error": "无法完成处理。\n{message}",
+
+  "preview.button": "预览排版",
+  "preview.title": "排版预览",
+  "processing.preview": "正在生成排版预览…"
 }

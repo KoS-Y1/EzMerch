@@ -1,6 +1,7 @@
 #
 # Created by y1 on 2026-10-12
 #
+from PySide6.QtWidgets import QWidget
 import pathlib
 
 from PySide6.QtCore import Signal
@@ -17,8 +18,9 @@ from gui.ui_translations import UiTranslations
 
 class ExportPanel(QGroupBox):
     export_requested = Signal(object, object)
+    preview_requested = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__(i18n.tr("export.title"), parent)
 
         self.__mode = ExportMode.INDIVIDUAL
@@ -39,6 +41,11 @@ class ExportPanel(QGroupBox):
 
         self.__format_label = QLabel(i18n.tr("export.format"))
         self.__destination_label = QLabel(i18n.tr("export.directory"))
+        self.__preview = QPushButton(i18n.tr("preview.button"))
+        self.__preview.clicked.connect(self.preview_requested.emit)
+        self.__preview.hide()
+        self.__layout.addWidget(self.__preview)
+
         self.__layout.addWidget(self.__format_label)
         self.__layout.addWidget(self.__file_format)
         self.__layout.addWidget(self.__destination_label)
@@ -53,6 +60,7 @@ class ExportPanel(QGroupBox):
             (self.__destination.setPlaceholderText, lambda: self.__destination_key() + '.placeholder'),
             (self.__browse.setText, 'export.directory.browse'),
             (self.__export.setText, 'export.export'),
+            (self.__preview.setText, 'preview.button'),
         ):
             self.__translations.bind_text(setter, key)
         self.__translations.bind_combo(self.__file_format, lambda fmt: f'format.{fmt.value}')
@@ -66,6 +74,7 @@ class ExportPanel(QGroupBox):
         return key_selector[self.__mode]
 
     def set_export_mode(self, mode: ExportMode) -> None:
+        self.__preview.setVisible(mode == ExportMode.KISS_CUT)
         if mode != self.__mode:
             self.__destinations[self.__mode] = self.__destination.text()
             self.__mode = mode

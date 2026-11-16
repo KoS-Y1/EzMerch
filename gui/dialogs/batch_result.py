@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-13
 #
 
+from PySide6.QtWidgets import QWidget
 from enum import Enum
 
 from PySide6.QtCore import Qt
@@ -14,12 +15,13 @@ from gui.i18n import i18n
 class BatchOperation(Enum):
     LOAD = "load"
     EXPORT = "export"
+    PREVIEW = "preview"
 
 
 class BatchResultDialog(QMessageBox):
     """Present a completed batch without coupling processing to Qt widgets."""
 
-    def __init__(self, operation: BatchOperation, result: BatchResult, parent=None):
+    def __init__(self, operation: BatchOperation, result: BatchResult, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(i18n.tr(f"batch.{operation.value}.title"))
         self.setTextFormat(Qt.TextFormat.PlainText)

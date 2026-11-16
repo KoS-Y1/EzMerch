@@ -14,7 +14,7 @@ TranslationKey = str | Callable[[], str]
 
 
 class UiTranslations:
-    def __init__(self):
+    def __init__(self) -> None:
         self.__bindings: list[Callable[[], None]] = []
 
     def bind_text(self, setter: Callable[[str], None], key: TranslationKey) -> None:

@@ -1,3 +1,4 @@
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QCheckBox, QGroupBox, QVBoxLayout
 
@@ -8,7 +9,7 @@ from gui.widgets.settings_panel import SettingsPanel
 class ResizePanel(SettingsPanel):
     resize_toggled = Signal(bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__('resize.title', parent)
         self.__layout = QVBoxLayout(self)
         self.__resize = QCheckBox(i18n.tr('resize.enable'))

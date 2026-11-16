@@ -30,7 +30,7 @@ class ModeSettingsStack(QStackedWidget):
 
 
 class IndividualSettingsPage(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.__resize = ResizePanel(self)
         self.__bleed = BleedSetting(self)
@@ -63,7 +63,7 @@ class IndividualSettingsPage(QWidget):
 
 
 class KissCutSettingsPage(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__(parent)
         self.__layout = QVBoxLayout(self)
         self.__layout.setContentsMargins(PAGE_MARGIN, PAGE_MARGIN, PAGE_MARGIN, PAGE_MARGIN)

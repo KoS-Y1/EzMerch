@@ -14,7 +14,7 @@ class Language(Enum):
 
 
 class I18n:
-    def __init__(self, language: Language = Language.EN_US):
+    def __init__(self, language: Language = Language.EN_US) -> None:
         self.__language = language
         self.__localizations :dict[str, str]= {}
 

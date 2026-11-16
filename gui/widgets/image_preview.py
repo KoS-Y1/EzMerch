@@ -2,6 +2,11 @@
 # Created by y1 on 2026-10-12
 #
 
+from PySide6.QtCore import QModelIndex
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QStyleOptionViewItem
+from PySide6.QtWidgets import QWidget
 import pathlib
 
 from PySide6.QtCore import QPersistentModelIndex, QPoint, QRect, QSize, Qt, Signal
@@ -28,7 +33,7 @@ LOADED_ROLE = Qt.ItemDataRole.UserRole + 1
 
 
 class _PreviewDelegate(QStyledItemDelegate):
-    def __init__(self, parent, *, allow_removal: bool):
+    def __init__(self, parent: QObject | None, *, allow_removal: bool) -> None:
         super().__init__(parent)
         self.__allow_removal = allow_removal
 
@@ -41,7 +46,7 @@ class _PreviewDelegate(QStyledItemDelegate):
             REMOVE_CROSS_SIZE,
         )
 
-    def paint(self, painter, option, index):
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         super().paint(painter, option, index)
         if index.data(LOADED_ROLE):
             origin = QPoint(
@@ -75,7 +80,7 @@ class ImagePreview(QListWidget):
 
     remove_requested = Signal(object)
 
-    def __init__(self, parent=None, *, allow_removal: bool = False):
+    def __init__(self, parent: QWidget | None=None, *, allow_removal: bool = False) -> None:
         super().__init__(parent)
         self.__allow_removal = allow_removal
         self.__pressed_cross = QPersistentModelIndex()
@@ -112,7 +117,7 @@ class ImagePreview(QListWidget):
             item = self.item(row)
             item.setData(LOADED_ROLE, item.data(Qt.ItemDataRole.UserRole).resolve() in loaded)
 
-    def __cross_index(self, position):
+    def __cross_index(self, position: QPoint) -> QModelIndex | None:
         index = self.indexAt(position)
         if (
             self.__allow_removal and index.isValid()
@@ -121,7 +126,7 @@ class ImagePreview(QListWidget):
             return index
         return None
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         self.__pressed_cross = QPersistentModelIndex()
         if event.button() == Qt.MouseButton.LeftButton:
             index = self.__cross_index(event.position().toPoint())
@@ -131,7 +136,7 @@ class ImagePreview(QListWidget):
                 return
         super().mousePressEvent(event)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton and self.__pressed_cross.isValid():
             pressed = self.__pressed_cross
             self.__pressed_cross = QPersistentModelIndex()

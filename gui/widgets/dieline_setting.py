@@ -1,3 +1,4 @@
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout
 
@@ -16,7 +17,7 @@ MAX_DIELINE_DIMENSION_PX = MAX_OUTPUT_DIMENSION_PX
 class DielineSettingPanel(SettingsPanel):
     settings_changed = Signal(object, bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__('dieline.title', parent)
         self.__form_layout = QFormLayout(self)
         self.__form_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -76,7 +77,7 @@ class DielineSettingPanel(SettingsPanel):
         )
         self._changed()
 
-    def __unit_changed(self, *_args) -> None:
+    def __unit_changed(self, *_args: object) -> None:
         if self.__resize_enabled:
             self.__preferred_unit = self.__unit.currentData()
         self._changed()

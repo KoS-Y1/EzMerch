@@ -1,10 +1,13 @@
+from collections.abc import Callable
+from numpy.typing import NDArray
+import numpy as np
 import pathlib
 
 from PySide6.QtCore import QObject, QThread, Slot
 
 from core.entity import EntityElements
 from core.output_setting import FileFormat
-from core.processor import Processor
+from core.processor import BatchResult, Processor
 from gui.main_window import MainWindow
 from gui.dialogs.batch_result import BatchOperation
 from gui.export_mode import ExportMode
@@ -12,7 +15,7 @@ from gui.background_operation import OperationWorker
 
 
 class Presenter(QObject):
-    def __init__(self, view: MainWindow, processor: Processor):
+    def __init__(self, view: MainWindow, processor: Processor) -> None:
         super().__init__(view)
         self.__view = view
         self.__processor = processor
@@ -25,6 +28,7 @@ class Presenter(QObject):
         view.get_import_panel().images_selected.connect(self.__handle_selection_changed)
         view.get_import_panel().load_requested.connect(self.__handle_load_requested)
         view.get_export_panel().export_requested.connect(self.__handle_export)
+        view.get_export_panel().preview_requested.connect(self.__handle_preview)
 
     def __handle_selection_changed(self, paths:list[pathlib.Path]) -> None:
         if self.__thread is not None:
@@ -44,6 +48,24 @@ class Presenter(QObject):
         if destination is None or self.__thread is not None:
             return
 
+        mode, elements, resize = self.__collect_settings()
+
+        def export_individuals() -> BatchResult:
+            return self.__processor.export_individuals(
+                destination, file_format, elements,
+                resize=resize,
+            )
+
+        def export_kiss_cut() -> BatchResult:
+            return self.__processor.export_kiss_cut(destination, file_format, elements)
+
+        export_selector = {
+            ExportMode.INDIVIDUAL: export_individuals,
+            ExportMode.KISS_CUT: export_kiss_cut,
+        }
+        self.__start_operation(BatchOperation.EXPORT, export_selector[mode])
+
+    def __collect_settings(self) -> tuple[ExportMode, set[EntityElements], bool]:
         panel = self.__view.get_output_settings()
         output = panel.get_output_data()
         self.__processor.set_output_data(
@@ -77,22 +99,17 @@ class Presenter(QObject):
                 margin_unit=kiss_cut.margin_unit, spacing_unit=kiss_cut.spacing_unit,
             )
 
-        def export_individuals():
-            return self.__processor.export_individuals(
-                destination, file_format, elements,
-                resize=resize,
-            )
+        return mode, elements, resize
 
-        def export_kiss_cut():
-            return self.__processor.export_kiss_cut(destination, file_format, elements)
+    def __handle_preview(self) -> None:
+        if self.__thread is not None:
+            return
+        mode, elements, _ = self.__collect_settings()
+        if mode == ExportMode.KISS_CUT:
+            self.__start_operation(BatchOperation.PREVIEW,
+                lambda: self.__processor.prepare_kiss_cut_sheet(elements).flatten())
 
-        export_selector = {
-            ExportMode.INDIVIDUAL: export_individuals,
-            ExportMode.KISS_CUT: export_kiss_cut,
-        }
-        self.__start_operation(BatchOperation.EXPORT, export_selector[mode])
-
-    def __start_operation(self, operation: BatchOperation, task) -> None:
+    def __start_operation(self, operation: BatchOperation, task: Callable[[], object]) -> None:
         self.__operation = operation
         self.__result = None
         self.__error = None
@@ -110,7 +127,7 @@ class Presenter(QObject):
         self.__thread.start()
 
     @Slot(object)
-    def __completed(self, result) -> None:
+    def __completed(self, result: BatchResult | NDArray[np.uint8]) -> None:
         self.__result = result
 
     @Slot(str)
@@ -127,6 +144,10 @@ class Presenter(QObject):
         self.__view.set_processing(None)
         if error is not None:
             self.__view.show_processing_error(error)
+        elif operation == BatchOperation.PREVIEW:
+            from gui.dialogs.sheet_preview import SheetPreviewDialog
+            dialog = SheetPreviewDialog(result, self.__view)
+            dialog.exec()
         else:
             if operation == BatchOperation.LOAD:
                 self.__view.get_import_panel().set_loaded_paths(result.succeeded)

@@ -91,5 +91,9 @@
   "processing.load": "Loading images…",
   "processing.export": "Exporting…",
   "processing.error.title": "Processing failed",
-  "processing.error": "Processing could not finish.\n{message}"
+  "processing.error": "Processing could not finish.\n{message}",
+
+  "preview.button": "Preview Sheet",
+  "preview.title": "Sheet Preview",
+  "processing.preview": "Generating sheet preview…"
 }

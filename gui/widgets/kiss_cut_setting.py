@@ -2,6 +2,7 @@
 # Created by y1 on 2026-10-13
 #
 
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSignalBlocker
 from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGridLayout
 
@@ -23,7 +24,7 @@ KISS_COLUMN_STRETCH = 1
 class KissCutSettingPanel(SettingsPanel):
     """Canvas-edge margin and spacing for the kiss-cut sheet."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None=None) -> None:
         super().__init__('kiss.title', parent)
         self.__layout = QGridLayout(self)
         self.__margin_layout = QFormLayout()

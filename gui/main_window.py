@@ -2,6 +2,8 @@
 # Created by y1 on 2026-10-11
 #
 
+from core.output_setting import OutputData
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
@@ -32,7 +34,7 @@ MODE_INDIVIDUAL_INDEX = 0
 MODE_KISS_CUT_INDEX = 1
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings) -> None:
         super().__init__()
         self.__settings = settings
         self.__processing_dialog = None
@@ -189,7 +191,7 @@ class MainWindow(QMainWindow):
             i18n.tr('processing.error', message=message),
         )
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         if self.__processing_dialog is not None:
             event.ignore()
         else:
@@ -219,7 +221,7 @@ class MainWindow(QMainWindow):
         self.__output_settings.set_resize_enabled(enabled)
         self.__export.set_export_mode(self.get_export_mode())
 
-    def __sync_effect_context(self, output) -> None:
+    def __sync_effect_context(self, output: OutputData) -> None:
         dpi_selector = {
             ExportMode.INDIVIDUAL: self.__individual_page.set_output_dpi,
             ExportMode.KISS_CUT: self.__kiss_page.set_output_dpi,
