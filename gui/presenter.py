@@ -1,6 +1,5 @@
 from collections.abc import Callable
-from numpy.typing import NDArray
-import numpy as np
+from gui.sheet_preview_data import SheetPreviewData, build_sheet_preview
 import pathlib
 
 from PySide6.QtCore import QObject, QThread, Slot
@@ -107,7 +106,7 @@ class Presenter(QObject):
         mode, elements, _ = self.__collect_settings()
         if mode == ExportMode.KISS_CUT:
             self.__start_operation(BatchOperation.PREVIEW,
-                lambda: self.__processor.prepare_kiss_cut_sheet(elements).flatten())
+                lambda: build_sheet_preview(self.__processor.prepare_kiss_cut_sheet(elements)))
 
     def __start_operation(self, operation: BatchOperation, task: Callable[[], object]) -> None:
         self.__operation = operation
@@ -127,7 +126,7 @@ class Presenter(QObject):
         self.__thread.start()
 
     @Slot(object)
-    def __completed(self, result: BatchResult | NDArray[np.uint8]) -> None:
+    def __completed(self, result: BatchResult | SheetPreviewData) -> None:
         self.__result = result
 
     @Slot(str)

@@ -1,9 +1,9 @@
-"""Read-only view of the generated export sheet."""
-from numpy.typing import NDArray
+"""Temporary sticker editing in the generated sheet preview."""
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QWidget
-import numpy as np
 from PySide6.QtCore import Qt
+from gui.sheet_preview_data import SheetPreviewData
+from gui.widgets.preview_sticker import PreviewStickerItem
 from PySide6.QtGui import QImage, QPixmap, QPainter, QColor, QBrush, QPen
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QGraphicsView, QGraphicsScene
 
@@ -28,7 +28,7 @@ class SheetView(QGraphicsView):
 
 
 class SheetPreviewDialog(QDialog):
-    def __init__(self, image: NDArray[np.uint8], parent: QWidget | None=None) -> None:
+    def __init__(self, data: SheetPreviewData, parent: QWidget | None=None) -> None:
         super().__init__(parent)
 
         def create_checkerboard_brush() -> QBrush:
@@ -44,6 +44,18 @@ class SheetPreviewDialog(QDialog):
 
             return QBrush(tile)
 
+        def add_stickers_to_scene(scene: QGraphicsScene) -> None:
+            for index, sticker in enumerate(data.stickers):
+                image = sticker.image
+                image_height, image_width = image.shape[:2]
+                owned = QImage(image.data, image_width, image_height, image.strides[0],
+                               QImage.Format.Format_ARGB32).copy()
+                item = PreviewStickerItem(QPixmap.fromImage(owned))
+                item.setPos(sticker.x, sticker.y)
+                item.setToolTip(sticker.name)
+                item.setZValue(len(data.stickers) - index)
+                scene.addItem(item)
+
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.setWindowTitle(i18n.tr('preview.title'))
         self.setModal(True)
@@ -54,16 +66,17 @@ class SheetPreviewDialog(QDialog):
         layout = QVBoxLayout(self)
         scene = QGraphicsScene(self)
 
-        height, width = image.shape[:2]
-        owned = QImage(image.data, width, height, image.strides[0],
-                       QImage.Format.Format_ARGB32).copy()
+        width = data.width
+        height = data.height
+        background = scene.addRect(0, 0, width, height, QPen(Qt.PenStyle.NoPen), create_checkerboard_brush())
+        background.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
-        scene.addRect(0, 0, width, height, QPen(Qt.PenStyle.NoPen), create_checkerboard_brush())
-        scene.addPixmap(QPixmap.fromImage(owned))
+        add_stickers_to_scene(scene)
 
         pen = QPen(QColor(SHEET_BORDER_COLOR))
         pen.setCosmetic(True)
-        scene.addRect(0, 0, width, height, pen)
+        border = scene.addRect(0, 0, width, height, pen)
+        border.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
         scene.setSceneRect(0, 0, width, height)
 
         view = SheetView(scene, self)
