@@ -1,5 +1,8 @@
-"""Movable sticker with a screen-sized proportional resize handle."""
-from PySide6.QtCore import Qt, QPointF
+#
+# Created by y1 on 2026-11-15
+#
+
+from PySide6.QtCore import Qt, QPointF, QObject, Signal
 from PySide6.QtGui import QColor, QPen, QPixmap, QPainter
 from PySide6.QtWidgets import (
     QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsSceneMouseEvent, QStyleOptionGraphicsItem, QWidget,
@@ -15,7 +18,12 @@ HANDLE_COLOR = '#ffffff'
 MIN_ARTWORK_SIZE = 1
 
 
-class ResizeHandle(QGraphicsRectItem):
+class _StickerSignals(QObject):
+    gesture_started = Signal(bool)
+    gesture_finished = Signal()
+
+
+class _ResizeHandle(QGraphicsRectItem):
     def __init__(self, sticker: 'PreviewStickerItem') -> None:
         super().__init__(-HANDLE_SIZE / 2, -HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE, sticker)
         self.__sticker = sticker
@@ -51,6 +59,7 @@ class ResizeHandle(QGraphicsRectItem):
         painter.restore()
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        self.__sticker.signals.gesture_started.emit(True)
         self.__start_vector = event.scenePos() - self.__sticker.scenePos()
         self.__start_scale = self.__sticker.scale()
         event.accept()
@@ -67,12 +76,14 @@ class ResizeHandle(QGraphicsRectItem):
         event.accept()
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        self.__sticker.signals.gesture_finished.emit()
         event.accept()
 
 
 class PreviewStickerItem(QGraphicsPixmapItem):
     def __init__(self, pixmap: QPixmap) -> None:
         super().__init__(pixmap)
+        self.signals = _StickerSignals()
         self.setShapeMode(QGraphicsPixmapItem.ShapeMode.BoundingRectShape)
         self.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
@@ -85,9 +96,15 @@ class PreviewStickerItem(QGraphicsPixmapItem):
         self.__outline.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
         self.__outline.hide()
 
-        self.__handle = ResizeHandle(self)
+        self.__handle = _ResizeHandle(self)
         self.__handle.setPos(self.boundingRect().bottomRight())
         self.__handle.hide()
+
+    def update_image(self, pixmap: QPixmap) -> None:
+        self.setPixmap(pixmap)
+        self.setScale(1.0)
+        self.__outline.setRect(self.boundingRect())
+        self.__handle.setPos(self.boundingRect().bottomRight())
 
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: object) -> object:
         if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
@@ -97,7 +114,12 @@ class PreviewStickerItem(QGraphicsPixmapItem):
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
+            self.signals.gesture_started.emit(False)
             self.scene().clearSelection()
             self.setSelected(True)
             event.setModifiers(Qt.KeyboardModifier.NoModifier)
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        super().mouseReleaseEvent(event)
+        self.signals.gesture_finished.emit()

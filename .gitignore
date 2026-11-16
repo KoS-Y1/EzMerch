@@ -317,4 +317,6 @@ http-client.private.env.json
 # MacOS
 .DS_Store
 
+/test/
+
 settings.ini

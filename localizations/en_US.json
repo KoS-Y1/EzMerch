@@ -95,5 +95,12 @@
 
   "preview.button": "Preview Sheet",
   "preview.title": "Sheet Preview",
-  "processing.preview": "Generating sheet preview…"
+  "processing.preview": "Generating sheet preview…",
+
+  "preview.undo": "Undo",
+  "preview.redo": "Redo",
+  "preview.apply": "Apply",
+  "preview.unapplied": "Apply changes before closing?",
+  "preview.discard": "Discard",
+  "preview.cancel": "Cancel"
 }

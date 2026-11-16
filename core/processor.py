@@ -5,15 +5,15 @@
 import logging
 import pathlib
 from dataclasses import dataclass, replace, astuple
-from pydoc import doc
 
 import cv2
+import numpy as np
 
 from .document import Document
 from .entity import Entity, EntityElements
 from .output_setting import DEFAULT_DPI, OutputData, FileFormat, UnitType, ColorFormat, DielineData, BleedData, \
     KissCutData
-from .kiss_cut import generate_kiss_cut
+from .kiss_cut import KissCut
 
 from utils.file_io import export
 
@@ -49,7 +49,7 @@ class Processor:
         self.__kiss_cut_data = KissCutData()
 
         self.__entities: list[Entity] = []
-        self.__kiss_cut_sheet_cache: Document | None = None
+        self.__kiss_cut_sheet_cache: KissCut | None = None
         self.__kiss_cut_sheet_key: tuple[object, ...] | None = None
 
     def set_output_data(self, width: float, height: float, dpi: int = DEFAULT_DPI,
@@ -204,31 +204,57 @@ class Processor:
         )
         return BatchResult(self.__export_batch.succeeded.copy(), self.__export_batch.failed.copy())
 
-    def prepare_kiss_cut_sheet(self, elements: set[EntityElements]) -> Document:
+    def prepare_kiss_cut_sheet(self, elements: set[EntityElements]) -> KissCut:
         key = (tuple(id(e) for e in self.__entities), astuple(self.__output_data),
                astuple(self.__kiss_cut_data), frozenset(elements),
                astuple(self.__dieline_data) if EntityElements.DIELINE in elements else None,
                astuple(self.__bleed_data) if EntityElements.BLEED in elements else None)
         if self.__kiss_cut_sheet_cache is not None and key == self.__kiss_cut_sheet_key:
             return self.__kiss_cut_sheet_cache
-        stickers = generate_kiss_cut(self.__entities, elements, self.__output_data,
-                                     self.__kiss_cut_data, self.__dieline_data, self.__bleed_data)
-        doc = Document(output_data=self.__output_data)
-        for sticker, name in stickers:
-            doc.add_folder(sticker, name)
-        self.__kiss_cut_sheet_cache = doc
+        sheet = KissCut()
+        sheet.generate(self.__entities, elements, self.__output_data,
+                       self.__kiss_cut_data, self.__dieline_data, self.__bleed_data)
+        self.__kiss_cut_sheet_cache = sheet
         self.__kiss_cut_sheet_key = key
-        return doc
+        return sheet
+
+    def update_kiss_cut_sheet(self, sheet: KissCut) -> None:
+        snapshot = sheet.copy()
+        self.__kiss_cut_sheet_cache = snapshot
 
     def export_kiss_cut(self, dst_path: pathlib.Path, file_format: FileFormat,
                         elements: set[EntityElements]) -> BatchResult:
+        def build_document(sheet: KissCut) -> Document:
+            output = sheet.get_output_data()
+            document = Document(output)
+            width, height = output.get_size_px()
+
+            for sticker in sheet.get_stickers():
+                x = sticker.geometry.x
+                y = sticker.geometry.y
+                layers = []
+                for layer in sticker.layers:
+                    image = layer.image
+                    canvas = np.zeros((height, width, 4), dtype=np.uint8)
+                    left = max(0, x)
+                    top = max(0, y)
+                    right = min(width, x + image.shape[1])
+                    bottom = min(height, y + image.shape[0])
+                    if right > left and bottom > top:
+                        canvas[top:bottom, left:right] = image[top-y:bottom-y, left-x:right-x]
+                    layers.append((canvas, layer.name))
+                document.add_folder(layers, sticker.name)
+
+            return document
+
         element_strs = ",".join(sorted(e.value for e in elements))
         logger.info(f"---------- Start exporting kiss cut with stickers with {element_strs}")
 
         self.__export_batch.clear_batch()
 
         try:
-            doc = self.prepare_kiss_cut_sheet(elements)
+            sheet = self.prepare_kiss_cut_sheet(elements)
+            doc = build_document(sheet)
         except (OSError, cv2.error, ValueError) as exc:
             logger.warning(f"Failed to generate kiss cut: {exc}")
             self.__export_batch.failed.append(dst_path)

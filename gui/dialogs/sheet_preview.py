@@ -1,13 +1,17 @@
-"""Temporary sticker editing in the generated sheet preview."""
-from PySide6.QtGui import QResizeEvent
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt
-from gui.sheet_preview_data import SheetPreviewData
-from gui.widgets.preview_sticker import PreviewStickerItem
-from PySide6.QtGui import QImage, QPixmap, QPainter, QColor, QBrush, QPen
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QGraphicsView, QGraphicsScene
+#
+# Created by y1 on 2026-11-15
+#
 
+from collections.abc import Callable
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QPainter, QPen, QPixmap, QResizeEvent
+from PySide6.QtWidgets import QDialog, QGraphicsScene, QGraphicsView, QVBoxLayout, QWidget
+
+from core.kiss_cut import KissCut
 from gui.i18n import i18n
+from gui.preview_editor import PreviewEditor
+from gui.sheet_preview_data import SheetPreviewData, StickerPreviewUpdate
 
 
 PREVIEW_WIDTH = 900
@@ -21,14 +25,16 @@ CHECKERBOARD_DARK_COLOR = '#cccccc'
 SHEET_BORDER_COLOR = '#666666'
 
 
-class SheetView(QGraphicsView):
+class _SheetView(QGraphicsView):
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
 
 class SheetPreviewDialog(QDialog):
-    def __init__(self, data: SheetPreviewData, parent: QWidget | None=None) -> None:
+    def __init__(self, data: SheetPreviewData,
+                 render: Callable[[KissCut, int], StickerPreviewUpdate],
+                 apply: Callable[[KissCut], None], parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         def create_checkerboard_brush() -> QBrush:
@@ -43,18 +49,6 @@ class SheetPreviewDialog(QDialog):
             painter.end()
 
             return QBrush(tile)
-
-        def add_stickers_to_scene(scene: QGraphicsScene) -> None:
-            for index, sticker in enumerate(data.stickers):
-                image = sticker.image
-                image_height, image_width = image.shape[:2]
-                owned = QImage(image.data, image_width, image_height, image.strides[0],
-                               QImage.Format.Format_ARGB32).copy()
-                item = PreviewStickerItem(QPixmap.fromImage(owned))
-                item.setPos(sticker.x, sticker.y)
-                item.setToolTip(sticker.name)
-                item.setZValue(len(data.stickers) - index)
-                scene.addItem(item)
 
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.setWindowTitle(i18n.tr('preview.title'))
@@ -71,16 +65,27 @@ class SheetPreviewDialog(QDialog):
         background = scene.addRect(0, 0, width, height, QPen(Qt.PenStyle.NoPen), create_checkerboard_brush())
         background.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
-        add_stickers_to_scene(scene)
-
         pen = QPen(QColor(SHEET_BORDER_COLOR))
         pen.setCosmetic(True)
         border = scene.addRect(0, 0, width, height, pen)
         border.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
         scene.setSceneRect(0, 0, width, height)
 
-        view = SheetView(scene, self)
+        view = _SheetView(scene, self)
         view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout.addWidget(view)
+
+        self.__editor = PreviewEditor(self, scene, data, render, apply)
+        layout.addLayout(self.__editor.controls)
+
+    def reject(self) -> None:
+        self.close()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if not self.__editor.can_close():
+            event.ignore()
+            return
+        event.accept()
+        QDialog.reject(self)

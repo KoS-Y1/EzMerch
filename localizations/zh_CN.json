@@ -96,5 +96,12 @@
 
   "preview.button": "预览排版",
   "preview.title": "排版预览",
-  "processing.preview": "正在生成排版预览…"
+  "processing.preview": "正在生成排版预览…",
+
+  "preview.undo": "撤销",
+  "preview.redo": "重做",
+  "preview.apply": "应用",
+  "preview.unapplied": "关闭前应用更改吗？",
+  "preview.discard": "放弃",
+  "preview.cancel": "取消"
 }

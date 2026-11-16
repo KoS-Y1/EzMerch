@@ -1,16 +1,18 @@
-from collections.abc import Callable
-from gui.sheet_preview_data import SheetPreviewData, build_sheet_preview
 import pathlib
+from collections.abc import Callable
 
 from PySide6.QtCore import QObject, QThread, Slot
 
 from core.entity import EntityElements
+from core.kiss_cut import KissCut
 from core.output_setting import FileFormat
 from core.processor import BatchResult, Processor
-from gui.main_window import MainWindow
-from gui.dialogs.batch_result import BatchOperation
-from gui.export_mode import ExportMode
 from gui.background_operation import OperationWorker
+from gui.dialogs.batch_result import BatchOperation
+from gui.dialogs.sheet_preview import SheetPreviewDialog
+from gui.export_mode import ExportMode
+from gui.main_window import MainWindow
+from gui.sheet_preview_data import SheetPreviewData, StickerPreviewUpdate, build_sheet_preview, regenerate_sticker_preview
 
 
 class Presenter(QObject):
@@ -105,8 +107,11 @@ class Presenter(QObject):
             return
         mode, elements, _ = self.__collect_settings()
         if mode == ExportMode.KISS_CUT:
-            self.__start_operation(BatchOperation.PREVIEW,
-                lambda: build_sheet_preview(self.__processor.prepare_kiss_cut_sheet(elements)))
+            def prepare_preview() -> SheetPreviewData:
+                sheet = self.__processor.prepare_kiss_cut_sheet(elements).copy()
+                return build_sheet_preview(sheet)
+
+            self.__start_operation(BatchOperation.PREVIEW, prepare_preview)
 
     def __start_operation(self, operation: BatchOperation, task: Callable[[], object]) -> None:
         self.__operation = operation
@@ -144,8 +149,13 @@ class Presenter(QObject):
         if error is not None:
             self.__view.show_processing_error(error)
         elif operation == BatchOperation.PREVIEW:
-            from gui.dialogs.sheet_preview import SheetPreviewDialog
-            dialog = SheetPreviewDialog(result, self.__view)
+            def render_draft(sheet: KissCut, index: int) -> StickerPreviewUpdate:
+                return regenerate_sticker_preview(sheet, index)
+
+            def apply_draft(sheet: KissCut) -> None:
+                self.__processor.update_kiss_cut_sheet(sheet)
+
+            dialog = SheetPreviewDialog(result, render_draft, apply_draft, self.__view)
             dialog.exec()
         else:
             if operation == BatchOperation.LOAD:

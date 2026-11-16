@@ -1,10 +1,13 @@
-"""Independent display data derived from the cached sheet."""
+#
+# Created by y1 on 2026-11-15
+#
+
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
-
-from core.document import Document
+from core.entity import EntityElements
+from core.kiss_cut import KissCut, SheetLayer, SheetSticker
 
 
 @dataclass
@@ -13,6 +16,7 @@ class PreviewSticker:
     x: int
     y: int
     name: str
+    padding: int
 
 
 @dataclass
@@ -20,22 +24,45 @@ class SheetPreviewData:
     width: int
     height: int
     stickers: list[PreviewSticker]
+    sheet: KissCut
 
 
-def build_sheet_preview(document: Document) -> SheetPreviewData:
-    width, height = document.get_output_data().get_size_px()
+@dataclass
+class StickerPreviewUpdate:
+    sheet: KissCut
+    index: int
+    sticker: PreviewSticker
+
+
+def _composite_layers(layers: list[SheetLayer]) -> NDArray[np.uint8]:
+    shape = layers[0].image.shape
+    color = np.zeros(shape[:2] + (3,), dtype=np.float32)
+    alpha = np.zeros(shape[:2] + (1,), dtype=np.float32)
+    for layer in reversed(layers):
+        image = layer.image.astype(np.float32) / 255
+        source_alpha = image[..., 3:4]
+        color = image[..., :3] * source_alpha + color * (1 - source_alpha)
+        alpha = source_alpha + alpha * (1 - source_alpha)
+    color = np.divide(color, alpha, out=np.zeros_like(color), where=alpha > 0)
+    return np.clip(np.rint(np.concatenate((color, alpha), axis=2) * 255), 0, 255).astype(np.uint8)
+
+
+def _build_sticker_preview(sticker: SheetSticker, elements: frozenset[EntityElements]) -> PreviewSticker:
+    geometry = sticker.geometry
+    padding = sticker.source.get_required_paddings(set(elements))
+    return PreviewSticker(_composite_layers(sticker.layers), geometry.x, geometry.y,
+                          sticker.name, padding)
+
+
+def build_sheet_preview(sheet: KissCut) -> SheetPreviewData:
+    width, height = sheet.get_output_data().get_size_px()
     stickers = []
-    for folder in document.get_folders():
-        sticker = Document(document.get_output_data())
-        sticker.add_folder([(layer.data, layer.name) for layer in folder.layers], folder.name)
-        image = sticker.flatten()
-        rows, columns = np.nonzero(image[..., 3])
-        if not rows.size:
-            continue
+    for sticker in sheet.get_stickers():
+        stickers.append(_build_sticker_preview(sticker, sheet.get_elements()))
+    return SheetPreviewData(width, height, stickers, sheet)
 
-        x = int(columns.min())
-        y = int(rows.min())
-        cropped = image[y:int(rows.max()) + 1, x:int(columns.max()) + 1].copy()
-        stickers.append(PreviewSticker(cropped, x, y, folder.name))
 
-    return SheetPreviewData(width, height, stickers)
+def regenerate_sticker_preview(sheet: KissCut, index: int) -> StickerPreviewUpdate:
+    sheet.regenerate_sticker_layers(index)
+    sticker = _build_sticker_preview(sheet.get_sticker(index), sheet.get_elements())
+    return StickerPreviewUpdate(sheet, index, sticker)
