@@ -51,7 +51,7 @@ class KissCutPreviewEditor(QObject):
         self.__thread = None
         self.__worker = None
         self.__result = None
-        self.__error = None
+        self.__has_error = False
         self.__applying = False
         self.__close_after_apply = False
         self.__selected = None
@@ -191,7 +191,7 @@ class KissCutPreviewEditor(QObject):
         self.__busy = True
         self.__applying = applying
         self.__result = None
-        self.__error = None
+        self.__has_error = False
         self.__update_controls()
 
         def task() -> object:
@@ -214,8 +214,8 @@ class KissCutPreviewEditor(QObject):
     def completed(self, result: object) -> None:
         self.__result = result
 
-    def failed(self, message: str) -> None:
-        self.__error = message
+    def failed(self) -> None:
+        self.__has_error = True
 
     def finished(self) -> None:
         self.__thread.wait()
@@ -224,9 +224,10 @@ class KissCutPreviewEditor(QObject):
         self.__worker = None
         self.__busy = False
         self.__updating = True
-        if self.__error is not None:
+        if self.__has_error:
             self.__close_after_apply = False
-            QMessageBox.critical(self.__dialog, i18n.tr('processing.error.title'), self.__error)
+            QMessageBox.critical(self.__dialog, i18n.tr('processing.error.title'),
+                                 i18n.tr('processing.error'))
         elif self.__applying:
             self.__baseline = self.__result.get_sticker_geometries()
         else:

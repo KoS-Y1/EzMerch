@@ -185,10 +185,10 @@ class MainWindow(QMainWindow):
             self.centralWidget().setEnabled(True)
             self.menuBar().setEnabled(True)
 
-    def show_processing_error(self, message: str) -> None:
+    def show_processing_error(self) -> None:
         QMessageBox.critical(
             self, i18n.tr('processing.error.title'),
-            i18n.tr('processing.error', message=message),
+            i18n.tr('processing.error'),
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:

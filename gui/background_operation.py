@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class OperationWorker(QObject):
     completed = Signal(object)
-    failed = Signal(str)
+    failed = Signal()
     finished = Signal()
 
     def __init__(self, task: Callable[[], object]) -> None:
@@ -20,8 +20,8 @@ class OperationWorker(QObject):
     def run(self) -> None:
         try:
             self.completed.emit(self.__task())
-        except Exception as exc:
+        except Exception:
             logger.exception('Background processing failed')
-            self.failed.emit(str(exc))
+            self.failed.emit()
         finally:
             self.finished.emit()

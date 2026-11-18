@@ -91,10 +91,9 @@
   "processing.load": "Loading images…",
   "processing.export": "Exporting…",
   "processing.error.title": "Processing failed",
-  "processing.error": "Processing could not finish.\n{message}",
+  "processing.error": "Processing could not finish.",
 
   "preview.button": "Preview Sheet",
-  "export.invalid_layout": "Cannot export: the layout contains overlap, spacing, or margin violations.",
   "preview.title": "Sheet Preview",
   "processing.preview": "Generating sheet preview…",
 

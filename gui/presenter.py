@@ -15,7 +15,6 @@ from gui.main_window import MainWindow
 from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate, build_sheet_preview, regenerate_sticker_preview
 from gui.kiss_cut_preview.data import sheet_sticker_bounds
 from gui.kiss_cut_preview.utils import check_layout
-from gui.i18n import i18n
 
 
 class Presenter(QObject):
@@ -26,7 +25,7 @@ class Presenter(QObject):
         self.__thread = None
         self.__worker = None
         self.__result = None
-        self.__error = None
+        self.__has_error = False
         self.__operation = None
 
         view.get_import_panel().images_selected.connect(self.__handle_selection_changed)
@@ -54,7 +53,6 @@ class Presenter(QObject):
 
         mode, elements, resize = self.__collect_settings()
         kiss_settings = self.__view.get_kiss_cut_page().get_kiss_settings().get_kiss_cut_data()
-        invalid_message = i18n.tr('export.invalid_layout')
 
         def export_individuals() -> BatchResult:
             return self.__processor.export_individuals(
@@ -66,7 +64,7 @@ class Presenter(QObject):
             sheet = self.__processor.prepare_kiss_cut_sheet(elements)
             if check_layout(sheet_sticker_bounds(sheet), sheet.get_output_data().get_size_px(),
                             kiss_settings.get_margin_px(), kiss_settings.get_spacing_px()):
-                raise ValueError(invalid_message)
+                raise ValueError("Kiss-cut layout has overlap, spacing, or margin violations")
             return self.__processor.export_kiss_cut(destination, file_format, elements)
 
         export_selector = {
@@ -126,7 +124,7 @@ class Presenter(QObject):
     def __start_operation(self, operation: BatchOperation, task: Callable[[], object]) -> None:
         self.__operation = operation
         self.__result = None
-        self.__error = None
+        self.__has_error = False
         self.__thread = QThread(self)
         self.__worker = OperationWorker(task)
         self.__worker.moveToThread(self.__thread)
@@ -144,20 +142,20 @@ class Presenter(QObject):
     def __completed(self, result: BatchResult | KissCutPreviewData) -> None:
         self.__result = result
 
-    @Slot(str)
-    def __failed(self, message: str) -> None:
-        self.__error = message
+    @Slot()
+    def __failed(self) -> None:
+        self.__has_error = True
 
     @Slot()
     def __finish_operation(self) -> None:
-        operation, result, error = self.__operation, self.__result, self.__error
+        operation, result, has_error = self.__operation, self.__result, self.__has_error
         # finished can arrive before deferred deletion and native thread teardown.
         self.__thread.wait()
         self.__worker = None
         self.__thread = None
         self.__view.set_processing(None)
-        if error is not None:
-            self.__view.show_processing_error(error)
+        if has_error:
+            self.__view.show_processing_error()
         elif operation == BatchOperation.PREVIEW:
             def render_draft(sheet: KissCut, index: int) -> KissCutStickerPreviewUpdate:
                 return regenerate_sticker_preview(sheet, index)
