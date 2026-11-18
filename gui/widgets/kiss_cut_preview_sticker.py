@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsSceneMouseEvent, QStyleOptionGraphicsItem, QWidget,
 )
 
+from gui.kiss_cut_preview.utils import calculate_resize_scale
+
 HANDLE_SIZE = 20
 RESIZE_ARROW_INSET = 5
 RESIZE_ARROW_HEAD_LENGTH = 5
@@ -67,12 +69,12 @@ class _ResizeHandle(QGraphicsRectItem):
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         vector = event.scenePos() - self.__sticker.scenePos()
         start = self.__start_vector
-        denominator = QPointF.dotProduct(start, start)
-        if denominator > 0:
-            scale = self.__start_scale * QPointF.dotProduct(vector, start) / denominator
-            bounds = self.__sticker.boundingRect()
-            minimum = MIN_ARTWORK_SIZE / min(bounds.width(), bounds.height())
-            self.__sticker.setScale(max(minimum, scale))
+        bounds = self.__sticker.boundingRect()
+        minimum = MIN_ARTWORK_SIZE / min(bounds.width(), bounds.height())
+        scale = calculate_resize_scale(
+            (start.x(), start.y()), (vector.x(), vector.y()), self.__start_scale, minimum,
+        )
+        self.__sticker.setScale(scale)
         event.accept()
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:

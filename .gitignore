@@ -318,5 +318,6 @@ http-client.private.env.json
 .DS_Store
 
 /test/
+/tests/
 
 settings.ini

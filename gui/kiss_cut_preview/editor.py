@@ -3,7 +3,6 @@
 #
 
 from collections.abc import Callable
-from dataclasses import replace
 
 from PySide6.QtCore import QObject, QThread
 from PySide6.QtGui import QUndoCommand, QUndoStack, QKeySequence, QPixmap, QImage
@@ -13,10 +12,10 @@ from core.kiss_cut import KissCut, SheetGeometry
 from gui.background_operation import OperationWorker
 from gui.i18n import i18n
 from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate
+from gui.kiss_cut_preview.utils import calculate_moved_geometry, calculate_resized_geometry
 from gui.widgets.kiss_cut_preview_sticker import KissCutPreviewStickerItem
 
 PREVIEW_UNDO_LIMIT = 100
-MIN_STICKER_DIMENSION = 1
 
 
 class _GeometryCommand(QUndoCommand):
@@ -116,14 +115,11 @@ class KissCutPreviewEditor(QObject):
     def __finish_gesture(self, index: int) -> None:
         item = self.__items[index]
         before = self.__sheet.get_sticker_geometry(index)
-        target_width = before.width
-        target_height = before.height
-        if self.__resizing and item.scale() != 1.0:
+        after = before
+        if self.__resizing:
             padding = self.__data.stickers[index].padding
-            target_width = max(MIN_STICKER_DIMENSION, round(item.boundingRect().width() * item.scale()) - 2 * padding)
-            target_height = max(MIN_STICKER_DIMENSION, round(target_width * before.height / before.width))
-        after = replace(before, x=round(item.pos().x()), y=round(item.pos().y()),
-                        width=target_width, height=target_height)
+            after = calculate_resized_geometry(before, item.boundingRect().width(), padding, item.scale())
+        after = calculate_moved_geometry(after, (item.pos().x(), item.pos().y()))
         if after != before:
             self.__stack.push(_GeometryCommand(self, index, before, after))
         elif index in self.__unresolved:
