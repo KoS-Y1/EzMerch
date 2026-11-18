@@ -24,7 +24,7 @@ class _StickerSignals(QObject):
 
 
 class _ResizeHandle(QGraphicsRectItem):
-    def __init__(self, sticker: 'PreviewStickerItem') -> None:
+    def __init__(self, sticker: 'KissCutPreviewStickerItem') -> None:
         super().__init__(-HANDLE_SIZE / 2, -HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE, sticker)
         self.__sticker = sticker
         self.__start_vector = QPointF()
@@ -80,7 +80,7 @@ class _ResizeHandle(QGraphicsRectItem):
         event.accept()
 
 
-class PreviewStickerItem(QGraphicsPixmapItem):
+class KissCutPreviewStickerItem(QGraphicsPixmapItem):
     def __init__(self, pixmap: QPixmap) -> None:
         super().__init__(pixmap)
         self.signals = _StickerSignals()
@@ -89,6 +89,7 @@ class PreviewStickerItem(QGraphicsPixmapItem):
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
                       QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
 
+        # Bounding box
         self.__outline = QGraphicsRectItem(self.boundingRect(), self)
         pen = QPen(QColor(SELECTION_COLOR))
         pen.setCosmetic(True)

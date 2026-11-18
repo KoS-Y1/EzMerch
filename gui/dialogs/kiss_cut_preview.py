@@ -10,8 +10,8 @@ from PySide6.QtWidgets import QDialog, QGraphicsScene, QGraphicsView, QVBoxLayou
 
 from core.kiss_cut import KissCut
 from gui.i18n import i18n
-from gui.preview_editor import PreviewEditor
-from gui.sheet_preview_data import SheetPreviewData, StickerPreviewUpdate
+from gui.kiss_cut_preview.editor import KissCutPreviewEditor
+from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate
 
 
 PREVIEW_WIDTH = 900
@@ -31,9 +31,9 @@ class _SheetView(QGraphicsView):
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
 
-class SheetPreviewDialog(QDialog):
-    def __init__(self, data: SheetPreviewData,
-                 render: Callable[[KissCut, int], StickerPreviewUpdate],
+class KissCutPreviewDialog(QDialog):
+    def __init__(self, data: KissCutPreviewData,
+                 render: Callable[[KissCut, int], KissCutStickerPreviewUpdate],
                  apply: Callable[[KissCut], None], parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -77,7 +77,7 @@ class SheetPreviewDialog(QDialog):
         view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout.addWidget(view)
 
-        self.__editor = PreviewEditor(self, scene, data, render, apply)
+        self.__editor = KissCutPreviewEditor(self, scene, data, render, apply)
         layout.addLayout(self.__editor.controls)
 
     def reject(self) -> None:

@@ -11,7 +11,7 @@ from core.kiss_cut import KissCut, SheetLayer, SheetSticker
 
 
 @dataclass
-class PreviewSticker:
+class KissCutStickerPreviewData:
     image: NDArray[np.uint8]
     x: int
     y: int
@@ -20,18 +20,18 @@ class PreviewSticker:
 
 
 @dataclass
-class SheetPreviewData:
+class KissCutPreviewData:
     width: int
     height: int
-    stickers: list[PreviewSticker]
+    stickers: list[KissCutStickerPreviewData]
     sheet: KissCut
 
 
 @dataclass
-class StickerPreviewUpdate:
+class KissCutStickerPreviewUpdate:
     sheet: KissCut
     index: int
-    sticker: PreviewSticker
+    sticker: KissCutStickerPreviewData
 
 
 def _composite_layers(layers: list[SheetLayer]) -> NDArray[np.uint8]:
@@ -47,22 +47,22 @@ def _composite_layers(layers: list[SheetLayer]) -> NDArray[np.uint8]:
     return np.clip(np.rint(np.concatenate((color, alpha), axis=2) * 255), 0, 255).astype(np.uint8)
 
 
-def _build_sticker_preview(sticker: SheetSticker, elements: frozenset[EntityElements]) -> PreviewSticker:
+def _build_sticker_preview(sticker: SheetSticker, elements: frozenset[EntityElements]) -> KissCutStickerPreviewData:
     geometry = sticker.geometry
     padding = sticker.source.get_required_paddings(set(elements))
-    return PreviewSticker(_composite_layers(sticker.layers), geometry.x, geometry.y,
+    return KissCutStickerPreviewData(_composite_layers(sticker.layers), geometry.x, geometry.y,
                           sticker.name, padding)
 
 
-def build_sheet_preview(sheet: KissCut) -> SheetPreviewData:
+def build_sheet_preview(sheet: KissCut) -> KissCutPreviewData:
     width, height = sheet.get_output_data().get_size_px()
     stickers = []
     for sticker in sheet.get_stickers():
         stickers.append(_build_sticker_preview(sticker, sheet.get_elements()))
-    return SheetPreviewData(width, height, stickers, sheet)
+    return KissCutPreviewData(width, height, stickers, sheet)
 
 
-def regenerate_sticker_preview(sheet: KissCut, index: int) -> StickerPreviewUpdate:
+def regenerate_sticker_preview(sheet: KissCut, index: int) -> KissCutStickerPreviewUpdate:
     sheet.regenerate_sticker_layers(index)
     sticker = _build_sticker_preview(sheet.get_sticker(index), sheet.get_elements())
-    return StickerPreviewUpdate(sheet, index, sticker)
+    return KissCutStickerPreviewUpdate(sheet, index, sticker)

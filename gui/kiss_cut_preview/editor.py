@@ -12,15 +12,15 @@ from PySide6.QtWidgets import QHBoxLayout, QPushButton, QMessageBox, QGraphicsSc
 from core.kiss_cut import KissCut, SheetGeometry
 from gui.background_operation import OperationWorker
 from gui.i18n import i18n
-from gui.sheet_preview_data import SheetPreviewData, StickerPreviewUpdate
-from gui.widgets.preview_sticker import PreviewStickerItem
+from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate
+from gui.widgets.kiss_cut_preview_sticker import KissCutPreviewStickerItem
 
 PREVIEW_UNDO_LIMIT = 100
 MIN_STICKER_DIMENSION = 1
 
 
 class _GeometryCommand(QUndoCommand):
-    def __init__(self, editor: 'PreviewEditor', index: int,
+    def __init__(self, editor: 'KissCutPreviewEditor', index: int,
                  before: SheetGeometry, after: SheetGeometry) -> None:
         super().__init__()
         self.__editor = editor
@@ -35,9 +35,9 @@ class _GeometryCommand(QUndoCommand):
         self.__editor._restore(self.__index, self.__after)
 
 
-class PreviewEditor(QObject):
-    def __init__(self, dialog: QDialog, scene: QGraphicsScene, data: SheetPreviewData,
-                 render: Callable[[KissCut, int], StickerPreviewUpdate],
+class KissCutPreviewEditor(QObject):
+    def __init__(self, dialog: QDialog, scene: QGraphicsScene, data: KissCutPreviewData,
+                 render: Callable[[KissCut, int], KissCutStickerPreviewUpdate],
                  apply: Callable[[KissCut], None]) -> None:
         super().__init__(dialog)
         self.__dialog = dialog
@@ -99,7 +99,7 @@ class PreviewEditor(QObject):
             image = sticker.image
             height, width = image.shape[:2]
             owned = QImage(image.data, width, height, image.strides[0], QImage.Format.Format_ARGB32).copy()
-            item = PreviewStickerItem(QPixmap.fromImage(owned))
+            item = KissCutPreviewStickerItem(QPixmap.fromImage(owned))
             item.setPos(sticker.x, sticker.y)
             item.setToolTip(sticker.name)
             item.setZValue(len(self.__data.stickers) - index)

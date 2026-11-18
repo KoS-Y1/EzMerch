@@ -9,10 +9,10 @@ from core.output_setting import FileFormat
 from core.processor import BatchResult, Processor
 from gui.background_operation import OperationWorker
 from gui.dialogs.batch_result import BatchOperation
-from gui.dialogs.sheet_preview import SheetPreviewDialog
+from gui.dialogs.kiss_cut_preview import KissCutPreviewDialog
 from gui.export_mode import ExportMode
 from gui.main_window import MainWindow
-from gui.sheet_preview_data import SheetPreviewData, StickerPreviewUpdate, build_sheet_preview, regenerate_sticker_preview
+from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate, build_sheet_preview, regenerate_sticker_preview
 
 
 class Presenter(QObject):
@@ -107,7 +107,7 @@ class Presenter(QObject):
             return
         mode, elements, _ = self.__collect_settings()
         if mode == ExportMode.KISS_CUT:
-            def prepare_preview() -> SheetPreviewData:
+            def prepare_preview() -> KissCutPreviewData:
                 sheet = self.__processor.prepare_kiss_cut_sheet(elements).copy()
                 return build_sheet_preview(sheet)
 
@@ -131,7 +131,7 @@ class Presenter(QObject):
         self.__thread.start()
 
     @Slot(object)
-    def __completed(self, result: BatchResult | SheetPreviewData) -> None:
+    def __completed(self, result: BatchResult | KissCutPreviewData) -> None:
         self.__result = result
 
     @Slot(str)
@@ -149,13 +149,13 @@ class Presenter(QObject):
         if error is not None:
             self.__view.show_processing_error(error)
         elif operation == BatchOperation.PREVIEW:
-            def render_draft(sheet: KissCut, index: int) -> StickerPreviewUpdate:
+            def render_draft(sheet: KissCut, index: int) -> KissCutStickerPreviewUpdate:
                 return regenerate_sticker_preview(sheet, index)
 
             def apply_draft(sheet: KissCut) -> None:
                 self.__processor.update_kiss_cut_sheet(sheet)
 
-            dialog = SheetPreviewDialog(result, render_draft, apply_draft, self.__view)
+            dialog = KissCutPreviewDialog(result, render_draft, apply_draft, self.__view)
             dialog.exec()
         else:
             if operation == BatchOperation.LOAD:
