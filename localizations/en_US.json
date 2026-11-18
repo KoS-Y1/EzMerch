@@ -94,6 +94,7 @@
   "processing.error": "Processing could not finish.\n{message}",
 
   "preview.button": "Preview Sheet",
+  "export.invalid_layout": "Cannot export: the layout contains overlap, spacing, or margin violations.",
   "preview.title": "Sheet Preview",
   "processing.preview": "Generating sheet preview…",
 
@@ -101,6 +102,7 @@
   "preview.redo": "Redo",
   "preview.apply": "Apply",
   "preview.unapplied": "Apply changes before closing?",
+  "preview.invalid.unapplied": "The layout contains overlapping stickers, insufficient spacing, or margin violations. Discard these changes and keep the last applied layout?",
   "preview.discard": "Discard",
   "preview.cancel": "Cancel"
 }

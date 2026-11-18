@@ -2,7 +2,7 @@
 # Created by y1 on 2026-11-15
 #
 
-from PySide6.QtCore import Qt, QPointF, QObject, Signal
+from PySide6.QtCore import Qt, QPointF, QRectF, QObject, Signal
 from PySide6.QtGui import QColor, QPen, QPixmap, QPainter
 from PySide6.QtWidgets import (
     QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsSceneMouseEvent, QStyleOptionGraphicsItem, QWidget,
@@ -23,6 +23,7 @@ MIN_ARTWORK_SIZE = 1
 class _StickerSignals(QObject):
     gesture_started = Signal(bool)
     gesture_finished = Signal()
+    geometry_changed = Signal()
 
 
 class _ResizeHandle(QGraphicsRectItem):
@@ -86,10 +87,14 @@ class KissCutPreviewStickerItem(QGraphicsPixmapItem):
     def __init__(self, pixmap: QPixmap) -> None:
         super().__init__(pixmap)
         self.signals = _StickerSignals()
+        self.__conflicting = False
+        self.__tint = QPixmap()
+        self.__update_tint()
         self.setShapeMode(QGraphicsPixmapItem.ShapeMode.BoundingRectShape)
         self.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
-                      QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
+                      QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
+                      QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
 
         # Bounding box
         self.__outline = QGraphicsRectItem(self.boundingRect(), self)
@@ -105,14 +110,41 @@ class KissCutPreviewStickerItem(QGraphicsPixmapItem):
 
     def update_image(self, pixmap: QPixmap) -> None:
         self.setPixmap(pixmap)
+        self.__update_tint()
         self.setScale(1.0)
         self.__outline.setRect(self.boundingRect())
         self.__handle.setPos(self.boundingRect().bottomRight())
+
+    def image_scene_bounds(self) -> QRectF:
+        size = self.pixmap().deviceIndependentSize()
+        return self.mapRectToScene(QRectF(self.offset(), size))
+
+    def set_conflicting(self, conflicting: bool) -> None:
+        if self.__conflicting != conflicting:
+            self.__conflicting = conflicting
+            self.update()
+
+    def __update_tint(self) -> None:
+        self.__tint = self.pixmap().copy()
+        painter = QPainter(self.__tint)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+        painter.fillRect(self.__tint.rect(), QColor(255, 48, 48, 102))
+        painter.end()
+
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem,
+              widget: QWidget | None = None) -> None:
+        if self.__conflicting:
+            painter.drawPixmap(self.offset(), self.__tint)
+        else:
+            super().paint(painter, option, widget)
 
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: object) -> object:
         if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             self.__outline.setVisible(bool(value))
             self.__handle.setVisible(bool(value))
+        elif change in (QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged,
+                        QGraphicsItem.GraphicsItemChange.ItemScaleHasChanged):
+            self.signals.geometry_changed.emit()
         return super().itemChange(change, value)
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:

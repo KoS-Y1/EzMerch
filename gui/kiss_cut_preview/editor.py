@@ -12,7 +12,9 @@ from core.kiss_cut import KissCut, SheetGeometry
 from gui.background_operation import OperationWorker
 from gui.i18n import i18n
 from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate
-from gui.kiss_cut_preview.utils import calculate_moved_geometry, calculate_resized_geometry
+from gui.kiss_cut_preview.utils import (
+    StickerBounds, check_layout, calculate_moved_geometry, calculate_resized_geometry,
+)
 from gui.widgets.kiss_cut_preview_sticker import KissCutPreviewStickerItem
 
 PREVIEW_UNDO_LIMIT = 100
@@ -57,6 +59,9 @@ class KissCutPreviewEditor(QObject):
         self.__unresolved: set[int] = set()
         self.__items = []
         self.__data = data
+        self.__invalid: set[int] = set()
+        self.__updating = False
+        self.__gesture_active = False
 
         self.__stack = QUndoStack(self)
         self.__stack.setUndoLimit(PREVIEW_UNDO_LIMIT)
@@ -80,17 +85,41 @@ class KissCutPreviewEditor(QObject):
         self.__stack.indexChanged.connect(self.__update_controls)
 
         self.__create_sticker_items()
-        self.__update_controls()
+        self.__refresh_validation()
 
     def __dirty(self) -> bool:
         return self.__sheet.get_sticker_geometries() != self.__baseline
+
+    def __can_apply(self) -> bool:
+        return (not self.__busy and not self.__unresolved and not self.__invalid
+                and not self.__gesture_active and self.__dirty())
+
+    def __refresh_validation(self) -> None:
+        if self.__updating or self.__busy:
+            return
+        bounds = {}
+        for index, item in enumerate(self.__items):
+            if index in self.__unresolved:
+                geometry = self.__sheet.get_sticker_geometry(index)
+                padding = self.__data.stickers[index].padding
+                bounds[index] = StickerBounds(geometry.x, geometry.y,
+                                              geometry.width + 2 * padding,
+                                              geometry.height + 2 * padding)
+            else:
+                rect = item.image_scene_bounds()
+                bounds[index] = StickerBounds(rect.x(), rect.y(), rect.width(), rect.height())
+        self.__invalid = check_layout(bounds, (self.__data.width, self.__data.height),
+                                      self.__data.margin_px, self.__data.spacing_px)
+        for index, item in enumerate(self.__items):
+            item.set_conflicting(index in self.__invalid)
+        self.__update_controls()
 
     def __update_controls(self, *_args: object) -> None:
         self.__undo_action.setEnabled(not self.__busy and self.__stack.canUndo())
         self.__redo_action.setEnabled(not self.__busy and self.__stack.canRedo())
         self.__undo_button.setEnabled(self.__undo_action.isEnabled())
         self.__redo_button.setEnabled(self.__redo_action.isEnabled())
-        self.__apply_button.setEnabled(not self.__busy and not self.__unresolved and self.__dirty())
+        self.__apply_button.setEnabled(self.__can_apply())
         self.__dialog.findChild(QGraphicsView).setEnabled(not self.__busy)
 
     def __create_sticker_items(self) -> None:
@@ -106,13 +135,17 @@ class KissCutPreviewEditor(QObject):
             self.__items.append(item)
             item.signals.gesture_started.connect(lambda resizing, index=index: self.__start_gesture(index, resizing))
             item.signals.gesture_finished.connect(lambda index=index: self.__finish_gesture(index))
+            item.signals.geometry_changed.connect(self.__refresh_validation)
             item.setSelected(index == self.__selected)
 
     def __start_gesture(self, index: int, resizing: bool) -> None:
         self.__selected = index
         self.__resizing = resizing
+        self.__gesture_active = True
+        self.__update_controls()
 
     def __finish_gesture(self, index: int) -> None:
+        self.__gesture_active = False
         item = self.__items[index]
         before = self.__sheet.get_sticker_geometry(index)
         after = before
@@ -127,24 +160,28 @@ class KissCutPreviewEditor(QObject):
         else:
             item.setScale(1.0)
             item.setPos(before.x, before.y)
+        self.__refresh_validation()
 
     def _restore(self, index: int, placement: SheetGeometry) -> None:
         before = self.__sheet.get_sticker_geometry(index)
         self.__sheet.set_sticker_geometry(index, placement)
+        self.__updating = True
         self.__selected = index
         self.__scene.clearSelection()
         self.__items[index].setSelected(True)
         self.__items[index].setPos(placement.x, placement.y)
         if (before.width, before.height) != (placement.width, placement.height):
             self.__unresolved.add(index)
+        self.__updating = False
 
         if index in self.__unresolved:
             self.__start_task(False, index)
         else:
-            self.__update_controls()
+            self.__refresh_validation()
 
     def __apply_changes(self) -> None:
-        if not self.__busy and not self.__unresolved and self.__dirty():
+        self.__refresh_validation()
+        if self.__can_apply():
             self.__start_task(True)
 
     def __start_task(self, applying: bool, index: int | None = None) -> None:
@@ -186,6 +223,7 @@ class KissCutPreviewEditor(QObject):
         self.__thread = None
         self.__worker = None
         self.__busy = False
+        self.__updating = True
         if self.__error is not None:
             self.__close_after_apply = False
             QMessageBox.critical(self.__dialog, i18n.tr('processing.error.title'), self.__error)
@@ -203,7 +241,8 @@ class KissCutPreviewEditor(QObject):
             item.update_image(QPixmap.fromImage(owned))
             item.setPos(update.sticker.x, update.sticker.y)
             self.__unresolved.discard(update.index)
-        self.__update_controls()
+        self.__updating = False
+        self.__refresh_validation()
         if self.__close_after_apply:
             self.__close_after_apply = False
             self.__dialog.close()
@@ -213,18 +252,24 @@ class KissCutPreviewEditor(QObject):
             return False
         if not self.__dirty():
             return True
+        self.__refresh_validation()
         box = QMessageBox(self.__dialog)
         box.setWindowTitle(i18n.tr('preview.title'))
-        box.setText(i18n.tr('preview.unapplied'))
-        apply_button = box.addButton(i18n.tr('preview.apply'), QMessageBox.ButtonRole.AcceptRole)
-        apply_button.setEnabled(not self.__unresolved)
+        apply_button = None
+        if self.__invalid:
+            box.setText(i18n.tr('preview.invalid.unapplied'))
+        else:
+            box.setText(i18n.tr('preview.unapplied'))
+            apply_button = box.addButton(i18n.tr('preview.apply'), QMessageBox.ButtonRole.AcceptRole)
+            apply_button.setEnabled(self.__can_apply())
         discard_button = box.addButton(i18n.tr('preview.discard'), QMessageBox.ButtonRole.DestructiveRole)
         cancel_button = box.addButton(i18n.tr('preview.cancel'), QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(cancel_button)
+        box.setEscapeButton(cancel_button)
         box.exec()
         if box.clickedButton() == discard_button:
             return True
-        if box.clickedButton() == apply_button:
+        if apply_button is not None and box.clickedButton() == apply_button:
             self.__close_after_apply = True
             self.__apply_changes()
         return False

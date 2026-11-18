@@ -69,6 +69,14 @@ class KissCutPreviewDialog(QDialog):
         pen.setCosmetic(True)
         border = scene.addRect(0, 0, width, height, pen)
         border.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        margin_pen = QPen(QColor(SHEET_BORDER_COLOR))
+        margin_pen.setCosmetic(True)
+        margin_pen.setStyle(Qt.PenStyle.DashLine)
+        margin = data.margin_px
+        usable_area = scene.addRect(margin, margin, width - 2 * margin,
+                                    height - 2 * margin, margin_pen)
+        usable_area.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        usable_area.setZValue(len(data.stickers) + 1)
         scene.setSceneRect(0, 0, width, height)
 
         view = _SheetView(scene, self)

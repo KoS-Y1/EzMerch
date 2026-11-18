@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from core.entity import EntityElements
 from core.kiss_cut import KissCut, SheetLayer, SheetSticker
+from gui.kiss_cut_preview.utils import StickerBounds
 
 
 @dataclass
@@ -25,6 +26,8 @@ class KissCutPreviewData:
     height: int
     stickers: list[KissCutStickerPreviewData]
     sheet: KissCut
+    margin_px: float = 0
+    spacing_px: float = 0
 
 
 @dataclass
@@ -54,12 +57,23 @@ def _build_sticker_preview(sticker: SheetSticker, elements: frozenset[EntityElem
                           sticker.name, padding)
 
 
-def build_sheet_preview(sheet: KissCut) -> KissCutPreviewData:
+def build_sheet_preview(sheet: KissCut, margin_px: float = 0,
+                        spacing_px: float = 0) -> KissCutPreviewData:
     width, height = sheet.get_output_data().get_size_px()
     stickers = []
     for sticker in sheet.get_stickers():
         stickers.append(_build_sticker_preview(sticker, sheet.get_elements()))
-    return KissCutPreviewData(width, height, stickers, sheet)
+    return KissCutPreviewData(width, height, stickers, sheet, margin_px, spacing_px)
+
+
+def sheet_sticker_bounds(sheet: KissCut) -> dict[int, StickerBounds]:
+    """Read the same padded image extents used by preview and export."""
+    return {
+        index: StickerBounds(sticker.geometry.x, sticker.geometry.y,
+                             max(layer.image.shape[1] for layer in sticker.layers),
+                             max(layer.image.shape[0] for layer in sticker.layers))
+        for index, sticker in enumerate(sheet.get_stickers())
+    }
 
 
 def regenerate_sticker_preview(sheet: KissCut, index: int) -> KissCutStickerPreviewUpdate:

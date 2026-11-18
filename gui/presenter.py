@@ -13,6 +13,9 @@ from gui.dialogs.kiss_cut_preview import KissCutPreviewDialog
 from gui.export_mode import ExportMode
 from gui.main_window import MainWindow
 from gui.kiss_cut_preview.data import KissCutPreviewData, KissCutStickerPreviewUpdate, build_sheet_preview, regenerate_sticker_preview
+from gui.kiss_cut_preview.data import sheet_sticker_bounds
+from gui.kiss_cut_preview.utils import check_layout
+from gui.i18n import i18n
 
 
 class Presenter(QObject):
@@ -50,6 +53,8 @@ class Presenter(QObject):
             return
 
         mode, elements, resize = self.__collect_settings()
+        kiss_settings = self.__view.get_kiss_cut_page().get_kiss_settings().get_kiss_cut_data()
+        invalid_message = i18n.tr('export.invalid_layout')
 
         def export_individuals() -> BatchResult:
             return self.__processor.export_individuals(
@@ -58,6 +63,10 @@ class Presenter(QObject):
             )
 
         def export_kiss_cut() -> BatchResult:
+            sheet = self.__processor.prepare_kiss_cut_sheet(elements)
+            if check_layout(sheet_sticker_bounds(sheet), sheet.get_output_data().get_size_px(),
+                            kiss_settings.get_margin_px(), kiss_settings.get_spacing_px()):
+                raise ValueError(invalid_message)
             return self.__processor.export_kiss_cut(destination, file_format, elements)
 
         export_selector = {
@@ -107,9 +116,10 @@ class Presenter(QObject):
             return
         mode, elements, _ = self.__collect_settings()
         if mode == ExportMode.KISS_CUT:
+            settings = self.__view.get_kiss_cut_page().get_kiss_settings().get_kiss_cut_data()
             def prepare_preview() -> KissCutPreviewData:
                 sheet = self.__processor.prepare_kiss_cut_sheet(elements).copy()
-                return build_sheet_preview(sheet)
+                return build_sheet_preview(sheet, settings.get_margin_px(), settings.get_spacing_px())
 
             self.__start_operation(BatchOperation.PREVIEW, prepare_preview)
 

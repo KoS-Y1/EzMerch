@@ -95,6 +95,7 @@
   "processing.error": "无法完成处理。\n{message}",
 
   "preview.button": "预览排版",
+  "export.invalid_layout": "无法导出：布局中存在重叠、间距不足或超出页边距的贴纸。",
   "preview.title": "排版预览",
   "processing.preview": "正在生成排版预览…",
 
@@ -102,6 +103,7 @@
   "preview.redo": "重做",
   "preview.apply": "应用",
   "preview.unapplied": "关闭前应用更改吗？",
+  "preview.invalid.unapplied": "布局中存在重叠、间距不足或超出页边距的贴纸。是否放弃这些更改并保留上次应用的布局？",
   "preview.discard": "放弃",
   "preview.cancel": "取消"
 }
